@@ -142,6 +142,7 @@ class AntibotClient:
         session = self._get_curl_session()
         if not session:
             return None
+        last_result: FetchResult | None = None
         try:
             for impersonate in BROWSER_IMPERSONATIONS:
                 try:
@@ -155,15 +156,16 @@ class AntibotClient:
                     text = resp.text
                     blocked = self._is_blocked(resp.status_code, text)
                     hdrs = dict(resp.headers) if hasattr(resp, "headers") else {}
-                    if not blocked or resp.status_code == 200:
-                        return FetchResult(
-                            url, text, resp.status_code, f"curl_cffi/{impersonate}", blocked, hdrs
-                        )
+                    last_result = FetchResult(
+                        url, text, resp.status_code, f"curl_cffi/{impersonate}", blocked, hdrs
+                    )
+                    if not blocked and resp.status_code < 400 and len(text) > 200:
+                        return last_result
                 except Exception:
                     continue
+            return last_result
         except Exception:
-            pass
-        return None
+            return last_result
 
     def _fetch_cloudscraper(self, url: str, referer: str | None) -> FetchResult | None:
         session = self._get_cloudscraper_session()
@@ -235,21 +237,15 @@ class AntibotClient:
                 wait = self.delay_seconds * (2 ** attempt) + random.uniform(0.5, 2.0)
                 time.sleep(wait)
 
-            methods: list = []
+            http_methods: list = []
             if self.aggressive:
-                methods.extend([self._fetch_curl_cffi, self._fetch_cloudscraper])
-            methods.append(lambda u, r: self._fetch_requests(u, r))
+                http_methods.extend([self._fetch_curl_cffi, self._fetch_cloudscraper])
+            http_methods.append(self._fetch_requests)
 
-            if attempt >= 2 and self.use_playwright_fallback:
-                methods.append(lambda u, r: self._fetch_playwright(u))
-
-            for method in methods:
+            all_http_blocked = True
+            for method in http_methods:
                 try:
-                    if method == self._fetch_playwright:
-                        result = method(url)
-                    else:
-                        result = method(url, referer)
-
+                    result = method(url, referer)
                     if result is None:
                         continue
 
@@ -257,8 +253,21 @@ class AntibotClient:
                     if not result.blocked and result.status_code < 400 and len(result.text) > 200:
                         time.sleep(self.delay_seconds + random.uniform(0.1, 0.5))
                         return result
+                    if result and not result.blocked:
+                        all_http_blocked = False
                 except Exception:
                     continue
+
+            if self.use_playwright_fallback and (all_http_blocked or attempt >= 1):
+                try:
+                    pw_result = self._fetch_playwright(url)
+                    if pw_result:
+                        last_result = pw_result
+                        if not pw_result.blocked and len(pw_result.text) > 200:
+                            time.sleep(self.delay_seconds + random.uniform(0.1, 0.5))
+                            return pw_result
+                except Exception:
+                    pass
 
         if last_result:
             return last_result
@@ -266,12 +275,15 @@ class AntibotClient:
 
     def get(self, url: str, **kwargs) -> requests.Response:
         """Compatível com interface requests.Session.get()."""
-        referer = kwargs.pop("headers", {}).get("Referer")
+        headers = kwargs.pop("headers", {}) or {}
+        referer = headers.get("Referer")
         result = self.fetch(url, referer=referer)
         response = requests.Response()
-        response.status_code = result.status_code or 403
+        response.status_code = result.status_code or (403 if result.blocked else 0)
         response._content = result.text.encode("utf-8", errors="replace")
         response.url = url
+        if result.headers:
+            response.headers.update(result.headers)
         if result.blocked:
             response.status_code = 403
         return response
@@ -297,7 +309,13 @@ def get_antibot_client(aggressive: bool = True) -> AntibotClient:
     global _default_client
     with _client_lock:
         if _default_client is None:
-            _default_client = AntibotClient(aggressive=aggressive)
+            _default_client = AntibotClient(
+                aggressive=aggressive,
+                use_playwright_fallback=aggressive,
+            )
+        else:
+            _default_client.aggressive = aggressive
+            _default_client.use_playwright_fallback = aggressive
         return _default_client
 
 

@@ -146,6 +146,7 @@ class FizPortugalSource(BaseSource):
                 client = AntibotClient(
                     delay_seconds=self.delay_seconds,
                     aggressive=self.aggressive_antibot,
+                    use_playwright_fallback=self.aggressive_antibot,
                 )
                 result = client.fetch(company_url)
                 if result.blocked or not result.text:
