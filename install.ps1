@@ -72,14 +72,15 @@ if ($LASTEXITCODE -ne 0) {
 Write-Step "Dependencias instaladas."
 
 # 3b. Instalar browser Playwright para modo anti-bot (opcional mas recomendado)
-Write-Step "A instalar browser para modo anti-bot (Chromium)..."
+Write-Step "A instalar browsers anti-bot (Playwright Chromium + Puppeteer/nodriver)..."
 $PythonW = Join-Path $PythonDir "python.exe"
 & $PythonW -m playwright install chromium 2>&1 | Out-Null
 if ($LASTEXITCODE -eq 0) {
-    Write-Step "Browser anti-bot instalado."
+    Write-Step "Playwright Chromium instalado."
 } else {
-    Write-Host "  [AVISO] Playwright nao instalado - modo anti-bot basico apenas." -ForegroundColor Yellow
+    Write-Host "  [AVISO] Playwright nao instalado - Puppeteer/nodriver ainda funciona." -ForegroundColor Yellow
 }
+Write-Step "Puppeteer (nodriver) usa Chrome automatico na primeira extracao."
 
 # 4. Criar atalho no ambiente de trabalho
 $Desktop = [Environment]::GetFolderPath("Desktop")

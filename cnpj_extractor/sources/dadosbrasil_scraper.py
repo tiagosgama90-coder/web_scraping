@@ -8,6 +8,7 @@ from typing import Iterator
 import requests
 from bs4 import BeautifulSoup
 
+from cnpj_extractor.antibot import AntibotClient
 from cnpj_extractor.models import CompanyEmail
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
 from cnpj_extractor.utils import clean_cnpj, is_valid_email, normalize_email
@@ -23,33 +24,36 @@ class DadosBrasilScraperSource(BaseSource):
         "nas páginas quando disponível."
     )
 
-    def __init__(self, delay_seconds: float = 0.3):
+    def __init__(self, delay_seconds: float = 0.3, aggressive_antibot: bool = True):
         self.delay_seconds = delay_seconds
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": (
-                    "Mozilla/5.0 (compatible; CNPJ-Email-Extractor/1.0; +https://dadosbrasil.net)"
-                ),
-                "Accept-Language": "pt-BR,pt;q=0.9",
-            }
+        self.aggressive_antibot = aggressive_antibot
+        self._client = AntibotClient(
+            delay_seconds=delay_seconds,
+            aggressive=aggressive_antibot,
+            use_playwright_fallback=aggressive_antibot,
         )
 
     def _fetch_page(self, cnpj_base: str) -> str:
         url = f"{SITE_BASE}{clean_cnpj(cnpj_base)[:8]}"
-        response = self.session.get(url, timeout=30)
-        response.raise_for_status()
+        result = self._client.fetch(url)
+        if result.blocked or result.status_code >= 400 or not result.text:
+            raise requests.HTTPError(f"Bloqueado por anti-bot: {url}")
         time.sleep(self.delay_seconds)
-        return response.text
+        return result.text
+
+    def _fetch_json(self, api_url: str) -> dict:
+        result = self._client.fetch(api_url)
+        if result.blocked or result.status_code >= 400 or not result.text:
+            raise requests.HTTPError(f"Bloqueado por anti-bot: {api_url}")
+        time.sleep(self.delay_seconds)
+        return json.loads(result.text)
 
     def _extract_api_url(self, html: str) -> str | None:
         match = API_JSON_LINK_PATTERN.search(html)
         return match.group(0) if match else None
 
     def _parse_from_api(self, api_url: str, legal_name_hint: str = "") -> list[CompanyEmail]:
-        response = self.session.get(api_url, timeout=30)
-        response.raise_for_status()
-        data = response.json()
+        data = self._fetch_json(api_url)
         legal_name = (data.get("legal_name") or legal_name_hint or "").strip()
         records: list[CompanyEmail] = []
 
@@ -116,8 +120,13 @@ class DadosBrasilScraperSource(BaseSource):
         *,
         cnpj_list: list[str],
         max_records: int | None = None,
+        aggressive_antibot: bool = True,
         progress_callback: ProgressCallback = None,
     ) -> Iterator[CompanyEmail]:
+        self.aggressive_antibot = aggressive_antibot
+        self._client.aggressive = aggressive_antibot
+        self._client.use_playwright_fallback = aggressive_antibot
+
         seen: set[tuple[str, str]] = set()
         found = 0
         total = len(cnpj_list)

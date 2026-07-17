@@ -1,4 +1,4 @@
-# Como usar — Company Email Extractor v2.0
+# Como usar — Company Email Extractor v2.2
 
 **Software nativo Windows** — janela própria, sem browser, sem terminal.
 
@@ -94,6 +94,20 @@ Clica **▶ Iniciar Extração**
 | **Desinstalar** | Apagar pasta | Painel de Controlo | Apagar ficheiro |
 | **Tamanho** | ~150 MB | ~80 MB | ~80 MB |
 | **Melhor para** | Desenvolvimento | Utilizador final | USB / teste rápido |
+
+---
+
+## Modo Anti-Bot (Playwright + Puppeteer)
+
+Active **🛡 Anti-Bot (Playwright + Puppeteer)** na barra lateral (ligado por defeito).
+
+Camadas automáticas:
+1. **curl_cffi** — imita o Chrome ao nível TLS
+2. **cloudscraper** — resolve desafios Cloudflare
+3. **Playwright** — browser real com scripts stealth (espera o desafio Cloudflare)
+4. **Puppeteer (nodriver)** — Chrome indetectável como último recurso
+
+O `INSTALAR.bat` instala o Chromium do Playwright automaticamente. O nodriver (Puppeteer) descarrega o Chrome na primeira utilização.
 
 ---
 

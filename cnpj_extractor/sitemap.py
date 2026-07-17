@@ -46,23 +46,28 @@ def _parse_sitemap_document(
     try:
         root = ET.fromstring(content)
     except ET.ParseError:
-        return []
+        return _filter_sitemap_locs(re.findall(r"<loc>(.*?)</loc>", content))
 
     tag = _strip_ns(root.tag)
     if tag == "sitemapindex":
         urls: list[str] = []
-        for sitemap in root.findall("sm:sitemap", SITEMAP_NS):
-            loc = sitemap.find("sm:loc", SITEMAP_NS)
-            if loc is not None and loc.text:
+        for loc in root.iter():
+            if _strip_ns(loc.tag) == "loc" and loc.text:
                 loc_text = loc.text.strip()
                 if _is_company_sitemap(loc_text):
                     urls.append(loc_text)
+        if not urls:
+            urls = _filter_sitemap_locs(re.findall(r"<loc>(.*?)</loc>", content))
         return urls
 
     if tag == "urlset":
         return [source_url]
 
     return []
+
+
+def _filter_sitemap_locs(locs: list[str]) -> list[str]:
+    return [loc.strip() for loc in locs if _is_company_sitemap(loc.strip())]
 
 
 def _strip_ns(tag: str) -> str:
@@ -77,6 +82,12 @@ def parse_urlset(content: str) -> list[str]:
         return re.findall(r"<loc>(.*?)</loc>", content)
 
     urls: list[str] = []
+    for loc in root.iter():
+        if _strip_ns(loc.tag) == "loc" and loc.text:
+            urls.append(loc.text.strip())
+    if urls:
+        return urls
+
     for url_node in root.findall("sm:url", SITEMAP_NS):
         loc = url_node.find("sm:loc", SITEMAP_NS)
         if loc is not None and loc.text:
@@ -136,6 +147,10 @@ def _is_company_sitemap(url: str) -> bool:
     if "/empresas" in lower or "/empresa" in lower:
         return True
     if re.search(r"/sitemap/empresas/\d+", lower):
+        return True
+    if re.search(r"sitemap_emp_es_\d+\.xml", lower):
+        return True
+    if re.search(r"sitemap_sucur_es_\d+\.xml", lower):
         return True
     if lower.endswith("sitemap.xml") and "empresa" in lower:
         return True

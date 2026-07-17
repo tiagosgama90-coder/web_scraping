@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
 import time
 from typing import Iterator
+from urllib.parse import urlencode
 
 import requests
 
+from cnpj_extractor.antibot import AntibotClient
 from cnpj_extractor.models import CompanyEmail
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
 from cnpj_extractor.utils import (
@@ -25,19 +28,24 @@ class DadosBrasilApiSource(BaseSource):
         "filtradas por UF, CNAE ou lista de CNPJs."
     )
 
-    def __init__(self, delay_seconds: float = 0.15):
+    def __init__(self, delay_seconds: float = 0.15, aggressive_antibot: bool = True):
         self.delay_seconds = delay_seconds
-        self.session = requests.Session()
-        self.session.headers.update(
-            {"User-Agent": "CNPJ-Email-Extractor/1.0 (+https://dadosbrasil.net)"}
+        self.aggressive_antibot = aggressive_antibot
+        self._client = AntibotClient(
+            delay_seconds=delay_seconds,
+            aggressive=aggressive_antibot,
+            use_playwright_fallback=aggressive_antibot,
         )
 
     def _get_json(self, path: str, params: dict | None = None) -> dict | list:
         url = f"{API_BASE}{path}"
-        response = self.session.get(url, params=params, timeout=30)
-        response.raise_for_status()
+        if params:
+            url = f"{url}?{urlencode(params)}"
+        result = self._client.fetch(url)
+        if result.blocked or result.status_code >= 400 or not result.text:
+            raise requests.HTTPError(f"Bloqueado por anti-bot: {url}")
         time.sleep(self.delay_seconds)
-        return response.json()
+        return json.loads(result.text)
 
     def _establishment_to_record(
         self, establishment: dict, legal_name: str = ""
@@ -139,8 +147,13 @@ class DadosBrasilApiSource(BaseSource):
         city_ibge: str | None = None,
         max_records: int | None = 500,
         fetch_all_establishments: bool = True,
+        aggressive_antibot: bool = True,
         progress_callback: ProgressCallback = None,
     ) -> Iterator[CompanyEmail]:
+        self.aggressive_antibot = aggressive_antibot
+        self._client.aggressive = aggressive_antibot
+        self._client.use_playwright_fallback = aggressive_antibot
+
         seen: set[tuple[str, str]] = set()
         found = 0
 
