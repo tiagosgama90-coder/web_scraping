@@ -61,7 +61,7 @@ $PipExe = Join-Path $PythonDir "Scripts\pip.exe"
 $env:PATH = "$PythonDir;$PythonDir\Scripts;$env:PATH"
 
 # 3. Instalar dependencias do projeto
-Write-Step "A instalar dependencias do software (pode demorar 2-5 minutos)..."
+Write-Step "A instalar dependencias do software (pode demorar 3-7 minutos)..."
 $ReqFile = Join-Path $AppDir "requirements.txt"
 & $PipExe install --upgrade pip --quiet 2>&1 | Out-Null
 & $PipExe install -r $ReqFile --quiet --no-warn-script-location
@@ -70,6 +70,16 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 Write-Step "Dependencias instaladas."
+
+# 3b. Instalar browser Playwright para modo anti-bot (opcional mas recomendado)
+Write-Step "A instalar browser para modo anti-bot (Chromium)..."
+$PythonW = Join-Path $PythonDir "python.exe"
+& $PythonW -m playwright install chromium 2>&1 | Out-Null
+if ($LASTEXITCODE -eq 0) {
+    Write-Step "Browser anti-bot instalado."
+} else {
+    Write-Host "  [AVISO] Playwright nao instalado - modo anti-bot basico apenas." -ForegroundColor Yellow
+}
 
 # 4. Criar atalho no ambiente de trabalho
 $Desktop = [Environment]::GetFolderPath("Desktop")

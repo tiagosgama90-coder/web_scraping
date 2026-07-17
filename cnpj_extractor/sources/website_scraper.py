@@ -9,46 +9,48 @@ from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
+from cnpj_extractor.antibot import AntibotClient, get_antibot_client
 from cnpj_extractor.models import CompanyEmail
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
 from cnpj_extractor.sources.sitemap_generic import GenericSitemapSource
 from cnpj_extractor.utils import is_valid_email, normalize_email
 
 EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
-SKIP_EMAIL_DOMAINS = {"example.com", "wixpress.com", "sentry.io", "schema.org"}
+SKIP_EMAIL_DOMAINS = {"example.com", "wixpress.com", "sentry.io", "schema.org", "cloudflare.com"}
 
 
 class WebScraperSource(BaseSource):
-    """Scraper universal para qualquer site, lista de URLs ou página única."""
+    """Scraper universal com bypass anti-bot para qualquer site."""
 
-    name = "Scraper Universal"
-    description = "Extrai e-mails de qualquer site, lista de URLs ou ficheiro importado."
+    name = "Scraper Universal (Anti-Bot)"
+    description = "Extrai e-mails de qualquer site — contorna Cloudflare e proteções anti-bot."
     country = "GLOBAL"
 
-    def __init__(self, delay_seconds: float = 0.3, max_workers: int = 6):
+    def __init__(
+        self,
+        delay_seconds: float = 0.4,
+        max_workers: int = 4,
+        aggressive_antibot: bool = True,
+    ):
         self.delay_seconds = delay_seconds
         self.max_workers = max_workers
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                ),
-                "Accept-Language": "pt-PT,pt;q=0.9,en;q=0.8",
-            }
+        self.aggressive_antibot = aggressive_antibot
+        self._client = AntibotClient(
+            delay_seconds=delay_seconds,
+            use_playwright_fallback=aggressive_antibot,
+            aggressive=aggressive_antibot,
         )
-        self._json_ld_parser = GenericSitemapSource(delay_seconds=delay_seconds)
+        self._json_ld_parser = GenericSitemapSource(
+            delay_seconds=delay_seconds, aggressive_antibot=aggressive_antibot
+        )
 
     def _extract_emails_from_html(self, html: str, page_url: str) -> list[CompanyEmail]:
         records: list[CompanyEmail] = []
 
-        # JSON-LD (schema.org)
         json_ld = self._json_ld_parser._parse_json_ld(html, page_url)
         if json_ld:
             records.append(json_ld)
 
-        # mailto: links
         soup = BeautifulSoup(html, "lxml")
         for link in soup.find_all("a", href=True):
             href = link.get("href", "")
@@ -64,7 +66,6 @@ class WebScraperSource(BaseSource):
                         )
                     )
 
-        # Regex no HTML
         title = soup.find("title")
         page_title = title.get_text(strip=True) if title else ""
         h1 = soup.find("h1")
@@ -78,7 +79,7 @@ class WebScraperSource(BaseSource):
                 continue
             if domain in SKIP_EMAIL_DOMAINS:
                 continue
-            if "example@" in email or email.endswith(".png") or email.endswith(".jpg"):
+            if "example@" in email or email.endswith((".png", ".jpg", ".gif")):
                 continue
             if email in found_emails:
                 continue
@@ -95,22 +96,18 @@ class WebScraperSource(BaseSource):
         return records
 
     def fetch_page(self, url: str) -> list[CompanyEmail]:
-        response = self.session.get(url, timeout=30)
-        response.raise_for_status()
-        time.sleep(self.delay_seconds)
-        return self._extract_emails_from_html(response.text, url)
+        result = self._client.fetch(url)
+        if result.blocked or not result.text:
+            return []
+        return self._extract_emails_from_html(result.text, url)
 
     def discover_links(self, start_url: str, max_links: int = 50) -> list[str]:
-        """Descobre links na mesma página para scraping básico."""
-        try:
-            response = self.session.get(start_url, timeout=30)
-            response.raise_for_status()
-        except requests.RequestException:
+        result = self._client.fetch(start_url)
+        if result.blocked or not result.text:
             return [start_url]
 
-        soup = BeautifulSoup(response.text, "lxml")
-        base = urlparse(start_url)
-        base_domain = base.netloc
+        soup = BeautifulSoup(result.text, "lxml")
+        base_domain = urlparse(start_url).netloc
         urls = [start_url]
         seen = {start_url}
 
@@ -119,10 +116,7 @@ class WebScraperSource(BaseSource):
             if not href or href.startswith("#") or href.startswith("javascript:"):
                 continue
             full = urljoin(start_url, href)
-            parsed = urlparse(full)
-            if parsed.netloc != base_domain:
-                continue
-            if full in seen:
+            if urlparse(full).netloc != base_domain or full in seen:
                 continue
             seen.add(full)
             urls.append(full)
@@ -142,11 +136,16 @@ class WebScraperSource(BaseSource):
         max_records: int | None = 500,
         progress_callback: ProgressCallback = None,
         source_name: str = "",
+        aggressive_antibot: bool | None = None,
     ) -> Iterator[CompanyEmail]:
+        if aggressive_antibot is not None:
+            self.aggressive_antibot = aggressive_antibot
+            self._client.aggressive = aggressive_antibot
+
         target_urls = list(urls or [])
         if start_url:
             if crawl_same_site:
-                self._report(progress_callback, 0.05, "A descobrir links no site...")
+                self._report(progress_callback, 0.05, "A descobrir links (modo anti-bot)...")
                 target_urls = self.discover_links(start_url, max_links=max_crawl_pages)
             elif start_url not in target_urls:
                 target_urls.insert(0, start_url)
@@ -154,22 +153,43 @@ class WebScraperSource(BaseSource):
         if not target_urls:
             return
 
+        # Uma instância de cliente por thread para evitar conflitos
         seen: set[tuple[str, str]] = set()
         found = 0
         total = len(target_urls)
         completed = 0
+        blocked_count = 0
 
-        def worker(page_url: str) -> list[CompanyEmail]:
+        def worker(page_url: str) -> tuple[list[CompanyEmail], bool]:
+            client = AntibotClient(
+                delay_seconds=self.delay_seconds,
+                aggressive=self.aggressive_antibot,
+                use_playwright_fallback=self.aggressive_antibot,
+            )
             try:
-                return self.fetch_page(page_url)
-            except requests.RequestException:
-                return []
+                result = client.fetch(page_url)
+                if result.blocked:
+                    return [], True
+                scraper = WebScraperSource(
+                    delay_seconds=self.delay_seconds,
+                    max_workers=1,
+                    aggressive_antibot=self.aggressive_antibot,
+                )
+                scraper._client = client
+                return scraper._extract_emails_from_html(result.text, page_url), False
+            except Exception:
+                return [], True
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        workers = 2 if self.aggressive_antibot else self.max_workers
+        with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(worker, url): url for url in target_urls}
             for future in as_completed(futures):
                 completed += 1
-                for record in future.result():
+                page_records, was_blocked = future.result()
+                if was_blocked:
+                    blocked_count += 1
+
+                for record in page_records:
                     if source_name:
                         record.fonte = source_name
                     key = (record.cnpj or record.email, record.email)
@@ -184,9 +204,8 @@ class WebScraperSource(BaseSource):
                         executor.shutdown(wait=False, cancel_futures=True)
                         return
 
-                if completed % 5 == 0 or completed == total:
-                    self._report(
-                        progress_callback,
-                        completed / max(total, 1),
-                        f"{completed:,}/{total:,} páginas — {found:,} e-mails",
-                    )
+                status = f"{completed:,}/{total:,} — {found:,} e-mails"
+                if blocked_count:
+                    status += f" ({blocked_count} bloqueados)"
+                if completed % 3 == 0 or completed == total:
+                    self._report(progress_callback, completed / max(total, 1), status)

@@ -30,7 +30,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.2.0"
 BUILTIN_PREFIX = "★ "
 CUSTOM_PREFIX = "✦ "
 SPECIAL_SOURCES = {
@@ -212,17 +212,24 @@ class CompanyEmailApp(ctk.CTk):
             row=11, column=0, padx=20, pady=6, sticky="w"
         )
 
+        self.antibot_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            sidebar,
+            text="🛡 Modo Anti-Bot (Cloudflare)",
+            variable=self.antibot_var,
+        ).grid(row=12, column=0, padx=20, pady=6, sticky="w")
+
         self.start_btn = ctk.CTkButton(sidebar, text="▶  Iniciar Extração", height=44,
                                        font=ctk.CTkFont(size=15, weight="bold"),
                                        command=self._start_extraction)
-        self.start_btn.grid(row=12, column=0, padx=20, pady=(10, 4), sticky="ew")
+        self.start_btn.grid(row=14, column=0, padx=20, pady=(10, 4), sticky="ew")
 
         self.stop_btn = ctk.CTkButton(sidebar, text="⏹  Parar", height=36, fg_color="#c0392b",
                                      hover_color="#962d22", command=self._stop_extraction, state="disabled")
-        self.stop_btn.grid(row=13, column=0, padx=20, pady=(4, 12), sticky="ew")
+        self.stop_btn.grid(row=15, column=0, padx=20, pady=(4, 12), sticky="ew")
 
         ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=15, column=0, padx=20, pady=(0, 16), sticky="ew")
+                      command=lambda: self.tabview.set("📖 Guia")).grid(row=16, column=0, padx=20, pady=(0, 16), sticky="ew")
 
         # Main tabs
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
@@ -489,9 +496,15 @@ class CompanyEmailApp(ctk.CTk):
             max_records = None if max_text == "0" else int(max_text or "100")
             auto = self.mode_var.get() == "automatico"
             only_email = self.only_email_var.get()
+            antibot = self.antibot_var.get()
             cb = lambda v, m: self.after(0, self._set_status, m, v)
 
-            kwargs: dict = {"max_records": max_records, "only_with_email": only_email, "progress_callback": cb}
+            kwargs: dict = {
+                "max_records": max_records,
+                "only_with_email": only_email,
+                "progress_callback": cb,
+                "aggressive_antibot": antibot,
+            }
             new_records: list[dict] = []
 
             if source_key.startswith("custom:"):
@@ -517,7 +530,8 @@ class CompanyEmailApp(ctk.CTk):
             elif source_key == "fiz_portugal":
                 dist = getattr(self, "distrito_var", None)
                 kwargs.update({"auto_discover": True, "max_sitemap_pages": None if auto else 1,
-                               "distrito": dist.get().strip() if dist and dist.get().strip() else None})
+                               "distrito": dist.get().strip() if dist and dist.get().strip() else None,
+                               "aggressive_antibot": antibot})
             elif source_key == "sitemap_generico":
                 url = self._ask_scraper_url() or FIZ_SITEMAP_INDEX
                 kwargs.update({

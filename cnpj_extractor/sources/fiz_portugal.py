@@ -9,6 +9,7 @@ from typing import Iterator
 import requests
 from bs4 import BeautifulSoup
 
+from cnpj_extractor.antibot import AntibotClient
 from cnpj_extractor.models import CompanyEmail
 from cnpj_extractor.sitemap import discover_sitemap_urls, fetch_all_company_urls, parse_urlset
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
@@ -27,24 +28,26 @@ class FizPortugalSource(BaseSource):
     )
     country = "PT"
 
-    def __init__(self, delay_seconds: float = 0.2, max_workers: int = 8):
+    def __init__(self, delay_seconds: float = 0.3, max_workers: int = 4, aggressive_antibot: bool = True):
         self.delay_seconds = delay_seconds
         self.max_workers = max_workers
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": (
-                    "Mozilla/5.0 (compatible; Company-Email-Extractor/1.1; +https://diretorio.fiz.co)"
-                ),
-                "Accept-Language": "pt-PT,pt;q=0.9",
-            }
+        self.aggressive_antibot = aggressive_antibot
+        self._client = AntibotClient(
+            delay_seconds=delay_seconds,
+            aggressive=aggressive_antibot,
+            use_playwright_fallback=aggressive_antibot,
         )
+        self.session = self._client
 
     def discover_total_pages(self) -> int:
-        response = self.session.get(FIZ_SITEMAP_PAGE, timeout=30)
-        response.raise_for_status()
-        total = response.headers.get("x-sitemap-pages", "0")
-        return int(total) if str(total).isdigit() else 0
+        result = self._client.fetch(FIZ_SITEMAP_PAGE)
+        # Header não disponível via fetch — pedido extra leve
+        try:
+            resp = self._client.get(FIZ_SITEMAP_PAGE, timeout=30)
+            total = resp.headers.get("x-sitemap-pages", "0")
+            return int(total) if str(total).isdigit() else 0
+        except Exception:
+            return 98
 
     def discover_all_sitemap_urls(self, progress_callback: ProgressCallback = None) -> list[str]:
         return discover_sitemap_urls(FIZ_SITEMAP_INDEX, session=self.session)
@@ -117,10 +120,11 @@ class FizPortugalSource(BaseSource):
         return None
 
     def fetch_company(self, url: str) -> CompanyEmail | None:
-        response = self.session.get(url, timeout=30)
-        response.raise_for_status()
+        result = self._client.fetch(url)
+        if result.blocked or not result.text:
+            return None
         time.sleep(self.delay_seconds)
-        return self._parse_company_page(response.text, url)
+        return self._parse_company_page(result.text, url)
 
     def _scrape_urls(
         self,
@@ -135,13 +139,22 @@ class FizPortugalSource(BaseSource):
         total = len(urls)
         completed = 0
 
+        workers = 2 if self.aggressive_antibot else self.max_workers
+
         def worker(company_url: str) -> CompanyEmail | None:
             try:
-                return self.fetch_company(company_url)
-            except requests.RequestException:
+                client = AntibotClient(
+                    delay_seconds=self.delay_seconds,
+                    aggressive=self.aggressive_antibot,
+                )
+                result = client.fetch(company_url)
+                if result.blocked or not result.text:
+                    return None
+                return self._parse_company_page(result.text, company_url)
+            except Exception:
                 return None
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(worker, url): url for url in urls}
             for future in as_completed(futures):
                 completed += 1
@@ -172,11 +185,21 @@ class FizPortugalSource(BaseSource):
         company_urls: list[str] | None = None,
         sitemap_pages: list[int] | None = None,
         max_sitemap_pages: int | None = None,
+        aggressive_antibot: bool = True,
         distrito: str | None = None,
         only_with_email: bool = True,
         max_records: int | None = 500,
         progress_callback: ProgressCallback = None,
     ) -> Iterator[CompanyEmail]:
+        self.aggressive_antibot = aggressive_antibot
+        if aggressive_antibot:
+            self._client = AntibotClient(
+                delay_seconds=self.delay_seconds,
+                aggressive=True,
+                use_playwright_fallback=True,
+            )
+            self.session = self._client
+
         urls = company_urls or []
 
         if not urls and auto_discover:
@@ -194,9 +217,9 @@ class FizPortugalSource(BaseSource):
 
             urls = []
             for index, sitemap_url in enumerate(sitemap_urls):
-                response = self.session.get(sitemap_url, timeout=60)
-                response.raise_for_status()
-                urls.extend(parse_urlset(response.text))
+                result = self._client.fetch(sitemap_url)
+                if result.text:
+                    urls.extend(parse_urlset(result.text))
                 self._report(
                     progress_callback,
                     (index + 1) / max(len(sitemap_urls), 1) * 0.3,

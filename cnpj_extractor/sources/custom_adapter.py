@@ -25,13 +25,14 @@ class CustomSourceAdapter(BaseSource):
         only_with_email: bool = True,
         auto_discover: bool | None = None,
         max_sitemap_pages: int | None = None,
+        aggressive_antibot: bool = True,
         progress_callback: ProgressCallback = None,
     ) -> Iterator[CompanyEmail]:
         auto = auto_discover if auto_discover is not None else self.config.auto_discover
         source_type = self.config.source_type
 
         if source_type == "sitemap":
-            scraper = GenericSitemapSource()
+            scraper = GenericSitemapSource(aggressive_antibot=aggressive_antibot)
             kwargs: dict = {
                 "sitemap_url": self.config.url,
                 "auto_discover": auto,
@@ -50,10 +51,10 @@ class CustomSourceAdapter(BaseSource):
                 sitemaps = sitemaps[:max_sitemap_pages]
                 urls: list[str] = []
                 for sm in sitemaps:
-                    resp = scraper.session.get(sm, timeout=60)
-                    resp.raise_for_status()
-                    urls.extend(parse_urlset(resp.text))
-                web = WebScraperSource()
+                    result = scraper._client.fetch(sm)
+                    if result.text:
+                        urls.extend(parse_urlset(result.text))
+                web = WebScraperSource(aggressive_antibot=aggressive_antibot)
                 yield from web.extract(
                     urls=urls,
                     only_with_email=only_with_email,
@@ -70,7 +71,7 @@ class CustomSourceAdapter(BaseSource):
 
         elif source_type == "urls":
             urls = parse_url_list(self.config.url_list or self.config.url)
-            web = WebScraperSource()
+            web = WebScraperSource(aggressive_antibot=aggressive_antibot)
             yield from web.extract(
                 urls=urls,
                 only_with_email=only_with_email,
@@ -80,7 +81,7 @@ class CustomSourceAdapter(BaseSource):
             )
 
         elif source_type == "pagina":
-            web = WebScraperSource()
+            web = WebScraperSource(aggressive_antibot=aggressive_antibot)
             yield from web.extract(
                 start_url=self.config.url,
                 crawl_same_site=auto,

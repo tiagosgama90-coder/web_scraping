@@ -8,6 +8,7 @@ from typing import Iterator
 
 import requests
 
+from cnpj_extractor.antibot import AntibotClient
 from cnpj_extractor.models import CompanyEmail
 from cnpj_extractor.sitemap import discover_sitemap_urls, fetch_all_company_urls, parse_urlset
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
@@ -19,24 +20,22 @@ CORPORATION_TYPES = {"Corporation", "LocalBusiness", "Organization"}
 class GenericSitemapSource(BaseSource):
     """Scraper genérico para qualquer site com sitemap XML semelhante."""
 
-    name = "Sitemap Genérico (qualquer site)"
+    name = "Sitemap Genérico (Anti-Bot)"
     description = (
-        "Cole o URL do sitemap (ex: https://site.com/sitemap.xml ou "
-        "https://site.com/api/sitemap/empresas/1) e o software descobre "
-        "automaticamente todas as páginas."
+        "Sitemap XML com bypass anti-bot. Descobre todas as páginas automaticamente."
     )
     country = "GLOBAL"
 
-    def __init__(self, delay_seconds: float = 0.3, max_workers: int = 6):
+    def __init__(self, delay_seconds: float = 0.4, max_workers: int = 4, aggressive_antibot: bool = True):
         self.delay_seconds = delay_seconds
         self.max_workers = max_workers
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": "Mozilla/5.0 (compatible; Company-Email-Extractor/1.1)",
-                "Accept-Language": "pt-PT,pt;q=0.9,en;q=0.8",
-            }
+        self.aggressive_antibot = aggressive_antibot
+        self._client = AntibotClient(
+            delay_seconds=delay_seconds,
+            aggressive=aggressive_antibot,
+            use_playwright_fallback=aggressive_antibot,
         )
+        self.session = self._client  # compatível com sitemap.py
 
     def _parse_json_ld(self, html: str, source_url: str) -> CompanyEmail | None:
         for match in re.finditer(
@@ -94,10 +93,11 @@ class GenericSitemapSource(BaseSource):
         return None
 
     def fetch_company(self, url: str) -> CompanyEmail | None:
-        response = self.session.get(url, timeout=30)
-        response.raise_for_status()
+        result = self._client.fetch(url)
+        if result.blocked or not result.text:
+            return None
         time.sleep(self.delay_seconds)
-        return self._parse_json_ld(response.text, url)
+        return self._parse_json_ld(result.text, url)
 
     def extract(
         self,
@@ -105,11 +105,21 @@ class GenericSitemapSource(BaseSource):
         sitemap_url: str,
         auto_discover: bool = True,
         include_all_sitemaps: bool = False,
+        aggressive_antibot: bool = True,
         only_with_email: bool = True,
         max_records: int | None = 500,
         progress_callback: ProgressCallback = None,
     ) -> Iterator[CompanyEmail]:
-        self._report(progress_callback, 0.0, "A descobrir sitemaps...")
+        self.aggressive_antibot = aggressive_antibot
+        if aggressive_antibot != self._client.aggressive:
+            self._client = AntibotClient(
+                delay_seconds=self.delay_seconds,
+                aggressive=aggressive_antibot,
+                use_playwright_fallback=aggressive_antibot,
+            )
+            self.session = self._client
+
+        self._report(progress_callback, 0.0, "A descobrir sitemaps (anti-bot)...")
 
         if auto_discover:
             all_sitemaps = discover_sitemap_urls(sitemap_url, session=self.session)
@@ -121,18 +131,17 @@ class GenericSitemapSource(BaseSource):
                     sitemap_urls = all_sitemaps or [sitemap_url]
             urls: list[str] = []
             for index, sm_url in enumerate(sitemap_urls):
-                response = self.session.get(sm_url, timeout=60)
-                response.raise_for_status()
-                urls.extend(parse_urlset(response.text))
+                result = self._client.fetch(sm_url)
+                if result.text:
+                    urls.extend(parse_urlset(result.text))
                 if progress_callback:
                     progress_callback(
                         (index + 1) / len(sitemap_urls) * 0.35,
                         f"Sitemap {index + 1}/{len(sitemap_urls)} — {len(urls):,} URLs",
                     )
         else:
-            response = self.session.get(sitemap_url, timeout=60)
-            response.raise_for_status()
-            urls = parse_urlset(response.text)
+            result = self._client.fetch(sitemap_url)
+            urls = parse_urlset(result.text) if result.text else []
 
         self._report(
             progress_callback,
@@ -151,7 +160,8 @@ class GenericSitemapSource(BaseSource):
             except requests.RequestException:
                 return None
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+        workers = 2 if self.aggressive_antibot else self.max_workers
+        with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(worker, url): url for url in urls}
             for future in as_completed(futures):
                 completed += 1
