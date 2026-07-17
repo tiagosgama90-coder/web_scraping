@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import random
 import re
 import threading
@@ -9,6 +10,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
+
+from cnpj_extractor.browser_stealth import CHROME_LAUNCH_ARGS, STEALTH_INIT_SCRIPT
 
 # Indicadores de bloqueio anti-bot na resposta HTML
 BLOCK_PATTERNS = [
@@ -23,6 +26,7 @@ BLOCK_PATTERNS = [
     r"captcha",
     r"bot detection",
     r"unusual traffic",
+    r"verify you are human",
 ]
 
 USER_AGENTS = [
@@ -46,6 +50,9 @@ USER_AGENTS = [
 
 BROWSER_IMPERSONATIONS = ["chrome120", "chrome119", "chrome110", "edge101", "safari17_0"]
 
+CLOUDFLARE_WAIT_SECONDS = 20
+BROWSER_POLL_INTERVAL = 1.5
+
 
 @dataclass
 class FetchResult:
@@ -57,16 +64,40 @@ class FetchResult:
     headers: dict | None = None
 
 
+def _run_async(coro):
+    """Executa corrotina async a partir de código sync (thread-safe)."""
+    loop = asyncio.new_event_loop()
+    try:
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(coro)
+        pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
+        for task in pending:
+            task.cancel()
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        loop.run_until_complete(asyncio.sleep(0.25))
+        return result
+    finally:
+        try:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+        except Exception:
+            pass
+        loop.close()
+        asyncio.set_event_loop(None)
+
+
 class AntibotClient:
     """
     Cliente HTTP com várias camadas anti-bot:
     1. curl_cffi (imita TLS fingerprint do Chrome)
     2. cloudscraper (resolve desafios Cloudflare básicos)
-    3. Playwright headless (browser real — último recurso)
-    4. requests padrão (fallback)
+    3. requests padrão (fallback)
+    4. Playwright (browser real com stealth)
+    5. nodriver (estilo Puppeteer — Chrome indetectável)
     """
 
     _playwright_available: bool | None = None
+    _nodriver_available: bool | None = None
 
     def __init__(
         self,
@@ -81,7 +112,7 @@ class AntibotClient:
         self.use_playwright_fallback = use_playwright_fallback
         self.aggressive = aggressive
         self._local = threading.local()
-        self._playwright_lock = threading.Lock()
+        self._browser_lock = threading.Lock()
 
     def _random_headers(self, referer: str | None = None) -> dict[str, str]:
         headers = {
@@ -105,8 +136,19 @@ class AntibotClient:
     def _is_blocked(self, status_code: int, html: str) -> bool:
         if status_code in {403, 429, 503, 520, 521, 522, 523}:
             return True
-        lower = (html or "").lower()[:8000]
+        lower = (html or "").lower()[:12000]
         return any(re.search(pat, lower) for pat in BLOCK_PATTERNS)
+
+    def _wait_for_real_content(self, get_html: Any, max_wait: float = CLOUDFLARE_WAIT_SECONDS) -> str:
+        """Espera até o desafio Cloudflare desaparecer ou timeout."""
+        deadline = time.time() + max_wait
+        last_html = ""
+        while time.time() < deadline:
+            last_html = get_html() or ""
+            if last_html and not self._is_blocked(200, last_html) and len(last_html) > 300:
+                return last_html
+            time.sleep(BROWSER_POLL_INTERVAL)
+        return last_html
 
     def _get_curl_session(self) -> Any | None:
         try:
@@ -142,6 +184,7 @@ class AntibotClient:
         session = self._get_curl_session()
         if not session:
             return None
+        last_result: FetchResult | None = None
         try:
             for impersonate in BROWSER_IMPERSONATIONS:
                 try:
@@ -155,15 +198,16 @@ class AntibotClient:
                     text = resp.text
                     blocked = self._is_blocked(resp.status_code, text)
                     hdrs = dict(resp.headers) if hasattr(resp, "headers") else {}
-                    if not blocked or resp.status_code == 200:
-                        return FetchResult(
-                            url, text, resp.status_code, f"curl_cffi/{impersonate}", blocked, hdrs
-                        )
+                    last_result = FetchResult(
+                        url, text, resp.status_code, f"curl_cffi/{impersonate}", blocked, hdrs
+                    )
+                    if not blocked and resp.status_code < 400 and len(text) > 200:
+                        return last_result
                 except Exception:
                     continue
+            return last_result
         except Exception:
-            pass
-        return None
+            return last_result
 
     def _fetch_cloudscraper(self, url: str, referer: str | None) -> FetchResult | None:
         session = self._get_cloudscraper_session()
@@ -193,32 +237,85 @@ class AntibotClient:
         except ImportError:
             return None
 
-        with self._playwright_lock:
+        with self._browser_lock:
             try:
                 with sync_playwright() as p:
-                    browser = p.chromium.launch(
-                        headless=True,
-                        args=[
-                            "--disable-blink-features=AutomationControlled",
-                            "--no-sandbox",
-                            "--disable-dev-shm-usage",
-                        ],
-                    )
+                    launch_kwargs: dict[str, Any] = {
+                        "headless": True,
+                        "args": CHROME_LAUNCH_ARGS,
+                    }
+                    browser = None
+                    for channel in ("chrome", None):
+                        try:
+                            if channel:
+                                browser = p.chromium.launch(channel=channel, **launch_kwargs)
+                            else:
+                                browser = p.chromium.launch(**launch_kwargs)
+                            break
+                        except Exception:
+                            continue
+                    if not browser:
+                        return None
+
+                    user_agent = random.choice(USER_AGENTS)
                     context = browser.new_context(
-                        user_agent=random.choice(USER_AGENTS),
+                        user_agent=user_agent,
                         locale="pt-PT",
                         viewport={"width": 1366, "height": 768},
+                        java_script_enabled=True,
+                        bypass_csp=True,
                     )
-                    context.add_init_script(
-                        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-                    )
+                    context.add_init_script(STEALTH_INIT_SCRIPT)
                     page = context.new_page()
                     page.goto(url, wait_until="domcontentloaded", timeout=60000)
-                    page.wait_for_timeout(2500)
-                    text = page.content()
+                    try:
+                        page.wait_for_load_state("networkidle", timeout=15000)
+                    except Exception:
+                        pass
+
+                    text = self._wait_for_real_content(page.content)
                     browser.close()
                     blocked = self._is_blocked(200, text)
                     return FetchResult(url, text, 200, "playwright", blocked)
+            except Exception:
+                return None
+
+    def _fetch_puppeteer(self, url: str) -> FetchResult | None:
+        """nodriver — automação estilo Puppeteer com Chrome indetectável."""
+        if not self.use_playwright_fallback:
+            return None
+        try:
+            import nodriver as uc
+        except ImportError:
+            return None
+
+        async def _run() -> str:
+            browser = await uc.start(headless=True)
+            try:
+                page = await browser.get(url)
+                deadline = time.time() + CLOUDFLARE_WAIT_SECONDS
+                last_html = ""
+                while time.time() < deadline:
+                    await asyncio.sleep(BROWSER_POLL_INTERVAL)
+                    last_html = await page.get_content()
+                    if last_html and not self._is_blocked(200, last_html) and len(last_html) > 300:
+                        return last_html
+                return last_html or await page.get_content()
+            finally:
+                try:
+                    stop = browser.stop()
+                    if asyncio.iscoroutine(stop):
+                        await stop
+                except Exception:
+                    pass
+
+        with self._browser_lock:
+            try:
+                text = _run_async(_run())
+                if not text:
+                    return None
+                blocked = self._is_blocked(200, text)
+                return FetchResult(url, text, 200, "puppeteer/nodriver", blocked)
             except Exception:
                 return None
 
@@ -235,21 +332,15 @@ class AntibotClient:
                 wait = self.delay_seconds * (2 ** attempt) + random.uniform(0.5, 2.0)
                 time.sleep(wait)
 
-            methods: list = []
+            http_methods: list = []
             if self.aggressive:
-                methods.extend([self._fetch_curl_cffi, self._fetch_cloudscraper])
-            methods.append(lambda u, r: self._fetch_requests(u, r))
+                http_methods.extend([self._fetch_curl_cffi, self._fetch_cloudscraper])
+            http_methods.append(self._fetch_requests)
 
-            if attempt >= 2 and self.use_playwright_fallback:
-                methods.append(lambda u, r: self._fetch_playwright(u))
-
-            for method in methods:
+            all_http_blocked = True
+            for method in http_methods:
                 try:
-                    if method == self._fetch_playwright:
-                        result = method(url)
-                    else:
-                        result = method(url, referer)
-
+                    result = method(url, referer)
                     if result is None:
                         continue
 
@@ -257,8 +348,22 @@ class AntibotClient:
                     if not result.blocked and result.status_code < 400 and len(result.text) > 200:
                         time.sleep(self.delay_seconds + random.uniform(0.1, 0.5))
                         return result
+                    if result and not result.blocked:
+                        all_http_blocked = False
                 except Exception:
                     continue
+
+            if self.use_playwright_fallback and (all_http_blocked or attempt >= 1):
+                for browser_method in (self._fetch_playwright, self._fetch_puppeteer):
+                    try:
+                        br_result = browser_method(url)
+                        if br_result:
+                            last_result = br_result
+                            if not br_result.blocked and len(br_result.text) > 200:
+                                time.sleep(self.delay_seconds + random.uniform(0.1, 0.5))
+                                return br_result
+                    except Exception:
+                        continue
 
         if last_result:
             return last_result
@@ -266,12 +371,15 @@ class AntibotClient:
 
     def get(self, url: str, **kwargs) -> requests.Response:
         """Compatível com interface requests.Session.get()."""
-        referer = kwargs.pop("headers", {}).get("Referer")
+        headers = kwargs.pop("headers", {}) or {}
+        referer = headers.get("Referer")
         result = self.fetch(url, referer=referer)
         response = requests.Response()
-        response.status_code = result.status_code or 403
+        response.status_code = result.status_code or (403 if result.blocked else 0)
         response._content = result.text.encode("utf-8", errors="replace")
         response.url = url
+        if result.headers:
+            response.headers.update(result.headers)
         if result.blocked:
             response.status_code = 403
         return response
@@ -282,10 +390,23 @@ class AntibotClient:
             return cls._playwright_available
         try:
             import playwright  # noqa: F401
+
             cls._playwright_available = True
         except ImportError:
             cls._playwright_available = False
         return cls._playwright_available
+
+    @classmethod
+    def is_puppeteer_installed(cls) -> bool:
+        if cls._nodriver_available is not None:
+            return cls._nodriver_available
+        try:
+            import nodriver  # noqa: F401
+
+            cls._nodriver_available = True
+        except ImportError:
+            cls._nodriver_available = False
+        return cls._nodriver_available
 
 
 # Cliente global partilhado (thread-safe via thread-local sessions)
@@ -297,7 +418,13 @@ def get_antibot_client(aggressive: bool = True) -> AntibotClient:
     global _default_client
     with _client_lock:
         if _default_client is None:
-            _default_client = AntibotClient(aggressive=aggressive)
+            _default_client = AntibotClient(
+                aggressive=aggressive,
+                use_playwright_fallback=aggressive,
+            )
+        else:
+            _default_client.aggressive = aggressive
+            _default_client.use_playwright_fallback = aggressive
         return _default_client
 
 
