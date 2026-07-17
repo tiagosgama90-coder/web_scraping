@@ -215,7 +215,7 @@ class CompanyEmailApp(ctk.CTk):
         self.antibot_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             sidebar,
-            text="🛡 Modo Anti-Bot (Cloudflare)",
+            text="🛡 Anti-Bot (Playwright + Puppeteer)",
             variable=self.antibot_var,
         ).grid(row=12, column=0, padx=20, pady=6, sticky="w")
 

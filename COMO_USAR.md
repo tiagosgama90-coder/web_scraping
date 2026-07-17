@@ -97,16 +97,17 @@ Clica **▶ Iniciar Extração**
 
 ---
 
-## Modo Anti-Bot (Cloudflare)
+## Modo Anti-Bot (Playwright + Puppeteer)
 
-Active **🛡 Modo Anti-Bot** na barra lateral (ligado por defeito).
+Active **🛡 Anti-Bot (Playwright + Puppeteer)** na barra lateral (ligado por defeito).
 
 Camadas automáticas:
 1. **curl_cffi** — imita o Chrome ao nível TLS
 2. **cloudscraper** — resolve desafios Cloudflare
-3. **Playwright** — abre browser real se as anteriores falharem
+3. **Playwright** — browser real com scripts stealth (espera o desafio Cloudflare)
+4. **Puppeteer (nodriver)** — Chrome indetectável como último recurso
 
-O `INSTALAR.bat` instala o Chromium automaticamente para o modo 3.
+O `INSTALAR.bat` instala o Chromium do Playwright automaticamente. O nodriver (Puppeteer) descarrega o Chrome na primeira utilização.
 
 ---
 
