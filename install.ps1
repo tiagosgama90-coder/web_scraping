@@ -78,17 +78,7 @@ $WshShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath = Join-Path $AppDir "ABRIR SOFTWARE.bat"
 $Shortcut.WorkingDirectory = $AppDir
-$Shortcut.Description = "Extrator de emails de empresas - Brasil e Portugal"
-$Shortcut.Save()
-Write-Step "Atalho criado no Ambiente de Trabalho."
-
-# 6. Criar atalho para app nativo
-$StartShortcut = Join-Path $Desktop "Company Email Extractor.lnk"
-if (Test-Path $ShortcutPath) { Remove-Item $ShortcutPath -Force }
-$Shortcut = $WshShell.CreateShortcut($StartShortcut)
-$Shortcut.TargetPath = Join-Path $AppDir "ABRIR SOFTWARE.bat"
-$Shortcut.WorkingDirectory = $AppDir
-$Shortcut.Description = "Extrator de emails - App nativo Windows"
+$Shortcut.Description = "Extrator de emails - App nativo Windows (sem browser)"
 $Shortcut.Save()
 Write-Step "Atalho criado no Ambiente de Trabalho."
 

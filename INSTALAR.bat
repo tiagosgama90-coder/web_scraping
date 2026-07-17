@@ -6,7 +6,7 @@ color 0A
 echo.
 echo  ========================================================
 echo   COMPANY EMAIL EXTRACTOR - Instalador Automatico
-echo   Brasil + Portugal | Sem configuracao manual
+echo  Software NATIVO - janela propria, sem browser
 echo  ========================================================
 echo.
 
