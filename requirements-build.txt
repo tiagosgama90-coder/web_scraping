@@ -1,0 +1,2 @@
+# Dependências para gerar o executável Windows (só para quem faz build)
+pyinstaller>=6.6.0

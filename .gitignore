@@ -3,6 +3,10 @@ __pycache__/
 *.db
 *.csv
 data/
+runtime/
+dist/
+build/
+*.spec.bak
 .streamlit/
 .venv/
 venv/
