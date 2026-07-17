@@ -104,6 +104,7 @@ class GenericSitemapSource(BaseSource):
         *,
         sitemap_url: str,
         auto_discover: bool = True,
+        include_all_sitemaps: bool = False,
         only_with_email: bool = True,
         max_records: int | None = 500,
         progress_callback: ProgressCallback = None,
@@ -112,9 +113,12 @@ class GenericSitemapSource(BaseSource):
 
         if auto_discover:
             all_sitemaps = discover_sitemap_urls(sitemap_url, session=self.session)
-            sitemap_urls = [u for u in all_sitemaps if "/empresas" in u.lower() or not all_sitemaps]
-            if not sitemap_urls:
+            if include_all_sitemaps:
                 sitemap_urls = all_sitemaps or [sitemap_url]
+            else:
+                sitemap_urls = [u for u in all_sitemaps if "/empresas" in u.lower() or not all_sitemaps]
+                if not sitemap_urls:
+                    sitemap_urls = all_sitemaps or [sitemap_url]
             urls: list[str] = []
             for index, sm_url in enumerate(sitemap_urls):
                 response = self.session.get(sm_url, timeout=60)

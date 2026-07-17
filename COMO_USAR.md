@@ -108,7 +108,22 @@ Clica **▶ Iniciar Extração**
 
 ---
 
-## Abrir resultados
+## Adicionar qualquer site ou base de dados
+
+1. Abra o software → separador **➕ Minhas Fontes**
+2. Clique **➕ Adicionar Fonte**
+3. Escolha o tipo:
+   - **Sitemap XML** — o software descobre todas as páginas sozinho
+   - **Lista de URLs** — cole links ou importe ficheiro .txt
+   - **Página/Site** — uma URL; modo auto segue links no site
+4. Guarde e clique **Usar** ou selecione na barra lateral
+
+As fontes ficam guardadas permanentemente — não precisa adicionar de novo.
+
+## Separador Guia
+
+O software inclui um **guia integrado** com instruções passo a passo e botão de teste rápido.
+
 
 - **SQLite (.db):** [DB Browser for SQLite](https://sqlitebrowser.org/) → tabela `empresas`
 - **CSV:** Abre no Excel
