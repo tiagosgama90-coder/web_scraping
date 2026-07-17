@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.db
+*.csv
+data/
+.streamlit/
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.DS_Store
