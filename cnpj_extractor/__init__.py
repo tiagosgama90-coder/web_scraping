@@ -1,3 +1,3 @@
-"""Extrator de e-mails de empresas brasileiras a partir de dados públicos CNPJ."""
+"""Extrator de e-mails de empresas (Brasil e Portugal)."""
 
 __version__ = "1.0.0"

@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS empresas (
     municipio TEXT,
     cnae TEXT,
     situacao TEXT,
+    pais TEXT,
+    website TEXT,
     fonte TEXT,
     data_extracao TEXT
 );
@@ -53,6 +55,8 @@ def records_to_dataframe(records: Iterable[CompanyEmail | dict]) -> pd.DataFrame
                 "municipio",
                 "cnae",
                 "situacao",
+                "pais",
+                "website",
                 "fonte",
                 "data_extracao",
             ]

@@ -3,12 +3,36 @@ from __future__ import annotations
 from cnpj_extractor.sources.base import BaseSource
 from cnpj_extractor.sources.dadosbrasil_api import DadosBrasilApiSource
 from cnpj_extractor.sources.dadosbrasil_scraper import DadosBrasilScraperSource
+from cnpj_extractor.sources.fiz_portugal import FizPortugalSource
 from cnpj_extractor.sources.receita_federal import ReceitaFederalSource
+from cnpj_extractor.sources.sitemap_generic import GenericSitemapSource
 
-SOURCES: dict[str, BaseSource] = {
+SOURCES_BR: dict[str, BaseSource] = {
     "receita_federal": ReceitaFederalSource(),
     "dadosbrasil_api": DadosBrasilApiSource(),
     "dadosbrasil_scraper": DadosBrasilScraperSource(),
+}
+
+SOURCES_PT: dict[str, BaseSource] = {
+    "fiz_portugal": FizPortugalSource(),
+    "sitemap_generico": GenericSitemapSource(),
+}
+
+SOURCES: dict[str, BaseSource] = {**SOURCES_BR, **SOURCES_PT}
+
+COUNTRIES = {
+    "BR": {
+        "name": "Brasil",
+        "flag": "🇧🇷",
+        "sources": SOURCES_BR,
+        "tax_id_label": "CNPJ",
+    },
+    "PT": {
+        "name": "Portugal",
+        "flag": "🇵🇹",
+        "sources": SOURCES_PT,
+        "tax_id_label": "NIPC",
+    },
 }
 
 COMMERCIAL_SOURCES_INFO = {
@@ -40,8 +64,13 @@ COMMERCIAL_SOURCES_INFO = {
 
 __all__ = [
     "SOURCES",
+    "SOURCES_BR",
+    "SOURCES_PT",
+    "COUNTRIES",
     "COMMERCIAL_SOURCES_INFO",
     "ReceitaFederalSource",
     "DadosBrasilApiSource",
     "DadosBrasilScraperSource",
+    "FizPortugalSource",
+    "GenericSitemapSource",
 ]

@@ -70,6 +70,7 @@ class DadosBrasilApiSource(BaseSource):
             situacao=normalize_situacao(
                 str(establishment.get("registration_status", ""))
             ),
+            pais="BR",
             fonte=self.name,
         )
 

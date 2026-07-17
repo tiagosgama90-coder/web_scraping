@@ -70,6 +70,7 @@ class DadosBrasilScraperSource(BaseSource):
                     municipio=(city.get("name") or "").strip(),
                     cnae="",
                     situacao=str(establishment.get("registration_status", "")),
+                    pais="BR",
                     fonte=self.name,
                 )
             )
@@ -93,6 +94,7 @@ class DadosBrasilScraperSource(BaseSource):
                         cnpj=clean_cnpj(cnpj_base)[:8] + "000101",
                         email=normalized,
                         razao_social=legal_name,
+                        pais="BR",
                         fonte=self.name,
                     )
                 )

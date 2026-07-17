@@ -213,6 +213,7 @@ class ReceitaFederalSource(BaseSource):
                     municipio=(row[20] or "").strip(),
                     cnae=(row[11] or "").strip(),
                     situacao=situacao,
+                    pais="BR",
                     fonte=self.name,
                 )
                 yield record

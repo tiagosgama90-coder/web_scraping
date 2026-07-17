@@ -7,7 +7,7 @@ from typing import Any
 
 @dataclass
 class CompanyEmail:
-    cnpj: str
+    cnpj: str  # CNPJ (BR) ou NIPC (PT)
     email: str
     razao_social: str = ""
     nome_fantasia: str = ""
@@ -16,6 +16,8 @@ class CompanyEmail:
     municipio: str = ""
     cnae: str = ""
     situacao: str = ""
+    pais: str = ""
+    website: str = ""
     fonte: str = ""
     data_extracao: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
