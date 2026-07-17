@@ -519,7 +519,22 @@ class CompanyEmailApp(ctk.CTk):
                 kwargs.update({"auto_discover": True, "max_sitemap_pages": None if auto else 1,
                                "distrito": dist.get().strip() if dist and dist.get().strip() else None})
             elif source_key == "sitemap_generico":
-                kwargs.update({"sitemap_url": FIZ_SITEMAP_INDEX, "auto_discover": auto, "include_all_sitemaps": True})
+                url = self._ask_scraper_url() or FIZ_SITEMAP_INDEX
+                kwargs.update({
+                    "sitemap_url": url,
+                    "auto_discover": auto,
+                    "include_all_sitemaps": True,
+                })
+            elif source_key == "website_scraper":
+                url = self._ask_scraper_url()
+                if not url:
+                    self.after(0, self._on_extraction_done_empty)
+                    return
+                kwargs.update({
+                    "start_url": url,
+                    "crawl_same_site": auto,
+                    "max_crawl_pages": 50 if auto else 1,
+                })
 
             for record in source.extract(**kwargs):
                 if self._stop_requested:
