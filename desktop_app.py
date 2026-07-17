@@ -74,7 +74,7 @@ class AddSourceDialog(ctk.CTkToplevel):
 
         ctk.CTkLabel(form, text="País", anchor="w").pack(fill="x", pady=(8, 0))
         self.country_var = ctk.StringVar(value="OUTRO")
-        ctk.CTkOptionMenu(form, variable=self.country_var, values=["PT", "BR", "OUTRO"]).pack(fill="x", pady=4)
+        ctk.CTkOptionMenu(form, variable=self.country_var, values=["PT", "BR", "ES", "OUTRO"]).pack(fill="x", pady=4)
 
         ctk.CTkLabel(form, text="URL principal / Sitemap", anchor="w").pack(fill="x", pady=(8, 0))
         self.url_var = ctk.StringVar(value="https://")
@@ -180,13 +180,13 @@ class CompanyEmailApp(ctk.CTk):
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
         )
-        ctk.CTkLabel(sidebar, text="Qualquer site • BR • PT", font=ctk.CTkFont(size=12), text_color="gray").grid(
+        ctk.CTkLabel(sidebar, text="Qualquer site • BR • PT • ES", font=ctk.CTkFont(size=12), text_color="gray").grid(
             row=1, column=0, padx=20, pady=(0, 12), sticky="w"
         )
 
         ctk.CTkLabel(sidebar, text="País", anchor="w").grid(row=2, column=0, padx=20, sticky="ew")
         self.country_var = ctk.StringVar(value="PT")
-        ctk.CTkOptionMenu(sidebar, variable=self.country_var, values=["PT", "BR", "OUTRO"],
+        ctk.CTkOptionMenu(sidebar, variable=self.country_var, values=["PT", "BR", "ES", "OUTRO"],
                           command=self._on_country_change, width=260).grid(row=3, column=0, padx=20, pady=(4, 10))
 
         ctk.CTkLabel(sidebar, text="Fonte de dados", anchor="w").grid(row=4, column=0, padx=20, sticky="ew")
@@ -426,8 +426,12 @@ class CompanyEmailApp(ctk.CTk):
             ctk.CTkLabel(self.filter_frame, text="Distrito (opcional)", anchor="w").pack(fill="x")
             self.distrito_var = ctk.StringVar()
             ctk.CTkEntry(self.filter_frame, textvariable=self.distrito_var, placeholder_text="Ex: Lisboa", width=260).pack(fill="x", pady=4)
+        elif country == "ES":
+            ctk.CTkLabel(self.filter_frame, text="Província (opcional)", anchor="w").pack(fill="x")
+            self.provincia_var = ctk.StringVar()
+            ctk.CTkEntry(self.filter_frame, textvariable=self.provincia_var, placeholder_text="Ex: Madrid", width=260).pack(fill="x", pady=4)
 
-        flags = {"PT": "🇵🇹 Portugal", "BR": "🇧🇷 Brasil", "OUTRO": "🌍 Outro"}
+        flags = {"PT": "🇵🇹 Portugal", "BR": "🇧🇷 Brasil", "ES": "🇪🇸 Espanha", "OUTRO": "🌍 Outro"}
         self.stat_country.configure(text=flags.get(country, country))
         self._rebuild_source_menu()
 
@@ -532,6 +536,14 @@ class CompanyEmailApp(ctk.CTk):
                 kwargs.update({"auto_discover": True, "max_sitemap_pages": None if auto else 1,
                                "distrito": dist.get().strip() if dist and dist.get().strip() else None,
                                "aggressive_antibot": antibot})
+            elif source_key == "empresite_spain":
+                prov = getattr(self, "provincia_var", None)
+                kwargs.update({
+                    "auto_discover": True,
+                    "max_sitemap_pages": None if auto else 1,
+                    "provincia": prov.get().strip() if prov and prov.get().strip() else None,
+                    "aggressive_antibot": antibot,
+                })
             elif source_key == "sitemap_generico":
                 url = self._ask_scraper_url() or FIZ_SITEMAP_INDEX
                 kwargs.update({
