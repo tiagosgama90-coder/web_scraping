@@ -1,133 +1,99 @@
-# Como usar o Company Email Extractor (Windows)
+# Como usar — Company Email Extractor v2.0
 
-Guia simples — **sem precisar de saber programar**.
-
----
-
-## Opção A — Mais fácil (recomendada): duplo clique
-
-### 1. Descarregar o projeto
-
-Vai a: **https://github.com/tiagosgama90-coder/web_scraping**
-
-Clica **Code** → **Download ZIP** → descompacta a pasta.
-
-### 2. Instalar (só uma vez)
-
-Dentro da pasta, faz **duplo clique** em:
-
-```
-INSTALAR.bat
-```
-
-O instalador faz tudo sozinho:
-- Descarrega Python portátil (não mexe no teu sistema)
-- Instala todas as dependências
-- Cria atalho no Ambiente de Trabalho
-
-Demora **2–5 minutos** na primeira vez.
-
-### 3. Abrir o software (sempre que quiseres)
-
-Faz duplo clique em:
-
-```
-ABRIR SOFTWARE.bat
-```
-
-Ou usa o atalho **Company Email Extractor** no Ambiente de Trabalho.
-
-O browser abre automaticamente em: **http://localhost:8501**
-
-### 4. Usar o software
-
-| Passo | O que fazer |
-|-------|-------------|
-| 1 | Escolhe o **país** (🇧🇷 Brasil ou 🇵🇹 Portugal) |
-| 2 | Escolhe a **fonte** de dados |
-| 3 | Modo **Limitado** = teste rápido / **Automático** = extração completa |
-| 4 | Clica **▶️ Iniciar extração** |
-| 5 | Vê resultados em **📊 Resultados** |
-| 6 | Exporta em **💾 Exportar** → SQLite ou CSV |
-
-### 5. Fechar
-
-Fecha a janela preta (terminal) ou prime **Ctrl+C**.
+**Software nativo Windows** — janela própria, sem browser, sem terminal.
 
 ---
 
-## Opção B — Executável (.exe) sem instalar nada
+## Instalação
 
-Se existir build disponível nos **Releases** ou **Actions** do GitHub:
+### Método 1 — Duplo clique (mais fácil)
 
-1. Descarrega `CompanyEmailExtractor-Windows.zip`
-2. Descompacta
-3. Duplo clique em `CompanyEmailExtractor.exe`
-4. O browser abre sozinho
+1. Descarrega o ZIP do GitHub
+2. **`INSTALAR.bat`** → duplo clique (só uma vez, 2–5 min)
+3. **`ABRIR SOFTWARE.bat`** → duplo clique (sempre que quiseres usar)
 
-> Nota: o .exe tem ~200–400 MB porque inclui Python e todas as bibliotecas.
+Aparece uma **janela do programa** — não abre o browser.
 
----
+### Método 2 — Instalador Setup (.exe)
 
-## Exemplos rápidos
+1. GitHub → separador **Actions**
+2. Workflow **Build Windows Native App**
+3. Descarrega artifact **`CompanyEmailExtractor-Installer`**
+4. Corre **`CompanyEmailExtractor-Setup.exe`**
+5. Segue o assistente (Next → Install → Finish)
+6. Abre pelo **Menu Iniciar** ou atalho no Ambiente de Trabalho
 
-### 🇵🇹 Portugal — teste (2 minutos)
+### Método 3 — Executável portátil
 
-1. País: **Portugal**
-2. Fonte: **Diretório FIZ**
-3. Modo: **Limitado**
-4. Limite: **50**
-5. **Iniciar extração**
-
-### 🇵🇹 Portugal — completo (~8–15 horas)
-
-1. País: **Portugal**
-2. Fonte: **Diretório FIZ**
-3. Modo: **Automático**
-4. Limite: **0** (sem limite)
-5. **Iniciar extração** e deixa correr
-
-### 🇧🇷 Brasil — teste (2 minutos)
-
-1. País: **Brasil**
-2. Fonte: **DadosBrasil API**
-3. UF: **SP**
-4. Modo: **Limitado**, limite **100**
-5. **Iniciar extração**
-
-### 🇧🇷 Brasil — completo (~6–24 horas)
-
-1. País: **Brasil**
-2. Fonte: **Receita Federal**
-3. Modo: **Automático**
-4. Limite: **0**
-5. **Iniciar extração**
+Descarrega `CompanyEmailExtractor.exe` → duplo clique → funciona sem instalar.
 
 ---
 
-## Abrir resultados
+## Usar o software
 
-### SQLite (.db)
-1. Instala [DB Browser for SQLite](https://sqlitebrowser.org/)
-2. **Open Database** → escolhe o ficheiro `.db`
-3. Tabela: **empresas**
+### Passo 1 — Configurar (barra lateral esquerda)
 
-### CSV
-Abre diretamente no **Excel** ou Google Sheets.
+| Campo | O que escolher |
+|-------|----------------|
+| **País** | Portugal ou Brasil |
+| **Fonte** | FIZ (PT) ou Receita Federal / DadosBrasil (BR) |
+| **Modo** | `limitado` = teste / `automatico` = completo |
+| **Limite** | `100` para teste / `0` para tudo |
+| **Filtros** | UF (Brasil) ou distrito (Portugal) |
+
+### Passo 2 — Extrair
+
+Clica **▶ Iniciar Extração**
+
+- Barra de progresso mostra o estado
+- Tabela mostra os resultados em tempo real
+- **⏹ Parar** interrompe a extração
+
+### Passo 3 — Exportar
+
+| Botão | Resultado |
+|-------|-----------|
+| **💾 Exportar SQLite** | Ficheiro `.db` para DB Browser |
+| **📄 Exportar CSV** | Ficheiro `.csv` para Excel |
 
 ---
 
-## Estrutura de ficheiros
+## Exemplos
 
-```
-web_scraping/
-├── INSTALAR.bat          ← 1º passo: instalar (só uma vez)
-├── ABRIR SOFTWARE.bat    ← Abrir o software
-├── install.ps1           ← Script de instalação (automático)
-├── app.py                ← Interface web
-├── runtime/              ← Python portátil (criado pelo instalador)
-└── cnpj_extractor/       ← Motor de extração
-```
+### 🇵🇹 Portugal — teste (2 min)
+- País: **PT**
+- Fonte: **Diretório FIZ**
+- Modo: **limitado**
+- Limite: **50**
+
+### 🇵🇹 Portugal — completo (8–15 h)
+- País: **PT**
+- Modo: **automatico**
+- Limite: **0**
+
+### 🇧🇷 Brasil — teste (2 min)
+- País: **BR**
+- Fonte: **DadosBrasil API**
+- UF: **SP**
+- Limite: **100**
+
+### 🇧🇷 Brasil — completo (6–24 h)
+- País: **BR**
+- Fonte: **Receita Federal**
+- Modo: **automatico**
+- Limite: **0**
+
+---
+
+## Diferença entre as opções de instalação
+
+| | INSTALAR.bat | Setup.exe | .exe portátil |
+|---|---|---|---|
+| **Aspecto** | Pasta com ficheiros | Instalador profissional | Um ficheiro só |
+| **Menu Iniciar** | Atalho manual | Sim | Não |
+| **Desinstalar** | Apagar pasta | Painel de Controlo | Apagar ficheiro |
+| **Tamanho** | ~150 MB | ~80 MB | ~80 MB |
+| **Melhor para** | Desenvolvimento | Utilizador final | USB / teste rápido |
 
 ---
 
@@ -135,23 +101,14 @@ web_scraping/
 
 | Problema | Solução |
 |----------|---------|
-| "Python não encontrado" ao usar INSTALAR.bat | Clica com botão direito → Executar como administrador |
-| Browser não abre | Abre manualmente: http://localhost:8501 |
-| Porta 8501 ocupada | Fecha outras janelas do software e tenta de novo |
-| Instalação falha | Verifica ligação à internet e volta a correr INSTALAR.bat |
-| Antivírus bloqueia | Adiciona a pasta à lista de exceções |
+| Janela não abre | Corre `INSTALAR.bat` primeiro |
+| Antivírus bloqueia | Adiciona exceção para a pasta |
+| Extração lenta | Normal no modo automático |
+| 0 resultados | Testa com limite 10, modo limitado |
 
 ---
 
-## Para programadores (opcional)
+## Abrir resultados
 
-```bash
-# Build do .exe no Windows
-build_windows.bat
-
-# Ou manualmente
-pip install -r requirements.txt -r requirements-build.txt
-pyinstaller company_email_extractor.spec --noconfirm
-```
-
-O executável fica em: `dist\CompanyEmailExtractor\CompanyEmailExtractor.exe`
+- **SQLite (.db):** [DB Browser for SQLite](https://sqlitebrowser.org/) → tabela `empresas`
+- **CSV:** Abre no Excel

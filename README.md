@@ -1,85 +1,86 @@
-# Company Email Extractor
+# Company Email Extractor v2.0
 
-Software para extrair e-mails de empresas de **Brasil** e **Portugal** — interface gráfica, sem configuração técnica.
+Software **nativo Windows** para extrair e-mails de empresas do **Brasil** e **Portugal**.
 
----
-
-## Windows — usar em 2 passos (sem instalar Python)
-
-### 1. Descarregar
-https://github.com/tiagosgama90-coder/web_scraping → **Code** → **Download ZIP**
-
-### 2. Instalar e abrir
-
-| Ficheiro | Quando usar |
-|----------|-------------|
-| **`INSTALAR.bat`** | Duplo clique **uma vez** (instala tudo automaticamente) |
-| **`ABRIR SOFTWARE.bat`** | Duplo clique **sempre que quiseres usar** o software |
-
-O instalador:
-- Descarrega Python portátil (não mexe no Windows)
-- Instala todas as dependências sozinho
-- Cria atalho no Ambiente de Trabalho
-
-📖 **Guia completo:** [COMO_USAR.md](COMO_USAR.md)
+**Janela própria — sem browser, sem terminal, sem configurar Python.**
 
 ---
 
-## Executável (.exe) — zero instalação
+## Instalação rápida (Windows)
 
-Descarrega `CompanyEmailExtractor-Windows.zip` nos **Artifacts** do GitHub Actions (aba Actions do repositório) ou corre `build_windows.bat` no Windows para gerar localmente.
+### Opção 1 — Instalador automático (recomendado)
 
-Duplo clique em `CompanyEmailExtractor.exe` → o browser abre sozinho.
+1. Descarrega o ZIP: https://github.com/tiagosgama90-coder/web_scraping
+2. Duplo clique em **`INSTALAR.bat`** (uma vez)
+3. Duplo clique em **`ABRIR SOFTWARE.bat`** (sempre)
+
+### Opção 2 — Setup profissional (.exe instalador)
+
+1. GitHub → **Actions** → **Build Windows Native App**
+2. Descarrega **`CompanyEmailExtractor-Installer`**
+3. Corre **`CompanyEmailExtractor-Setup.exe`**
+4. Segue o assistente de instalação
+5. Abre pelo menu Iniciar ou atalho no Ambiente de Trabalho
+
+### Opção 3 — Executável portátil (sem instalar)
+
+Descarrega `CompanyEmailExtractor.exe` nos Artifacts do GitHub. Duplo clique — funciona.
 
 ---
 
-## Países suportados
+## Interface
 
-### 🇵🇹 Portugal — Diretório FIZ (~490.000 empresas)
-Sitemap automático — descobre as 98 páginas sozinho.
-
-### 🇧🇷 Brasil — Receita Federal (~67 milhões de empresas)
-Dados abertos oficiais + API DadosBrasil.
-
----
-
-## Interface web (desenvolvimento / Mac / Linux)
-
-```bash
-pip install -r requirements.txt
-streamlit run app.py
+```
+┌─────────────────────────────────────────────────────┐
+│  📧 Company Email Extractor                         │
+├──────────────┬──────────────────────────────────────┤
+│ País         │  [Registos] [E-mails] [País] [Estado]│
+│ Fonte        │  ████████████░░░░░░  Progresso       │
+│ Modo         │  ┌────────────────────────────────┐  │
+│ Limite       │  │ NIPC │ Empresa │ Email │ ...  │  │
+│ Filtros      │  └────────────────────────────────┘  │
+│              │  [Exportar SQLite] [Exportar CSV]     │
+│ [▶ Iniciar]  │                                      │
+└──────────────┴──────────────────────────────────────┘
 ```
 
 ---
 
-## Linha de comandos (opcional)
+## Países
 
-```bash
-# Portugal - teste
-python -m cnpj_extractor.cli --pais PT --fonte fiz_portugal --max 10 -o teste.db
-
-# Portugal - completo
-python -m cnpj_extractor.cli --pais PT --fonte fiz_portugal --auto --max 0 -o portugal.db
-
-# Brasil - teste
-python -m cnpj_extractor.cli --pais BR --fonte dadosbrasil_api --uf SP --max 100 -o teste.db
-
-# Brasil - completo
-python -m cnpj_extractor.cli --pais BR --fonte receita_federal --auto --max 0 -o brasil.db
-```
+| País | Fonte | Empresas |
+|------|-------|----------|
+| 🇵🇹 Portugal | Diretório FIZ | ~490.000 (sitemap automático) |
+| 🇧🇷 Brasil | Receita Federal / DadosBrasil | ~67 milhões |
 
 ---
 
-## Requisitos
+## Modos
 
-| Modo | Requisitos |
-|------|------------|
-| **INSTALAR.bat** (Windows) | Só internet na 1ª vez |
-| **Executável .exe** | Nenhum — tudo incluído |
-| **Desenvolvimento** | Python 3.10+ |
+| Modo | Descrição |
+|------|-----------|
+| **Limitado** | Teste rápido (primeira página / amostra) |
+| **Automático** | Extração completa (todas as páginas do sitemap) |
+
+---
+
+## Documentação
+
+📖 Guia completo: [COMO_USAR.md](COMO_USAR.md)
+
+## Build (desenvolvedores)
+
+```bash
+build_windows.bat
+# ou
+pip install -r requirements.txt -r requirements-build.txt
+pyinstaller company_email_extractor.spec --noconfirm
+```
+
+Instalador Setup: abrir `installer/setup.iss` no Inno Setup 6.
 
 ---
 
 ## Aviso legal
 
-Utilize os dados em conformidade com a LGPD (Brasil) e RGPD (Portugal).
+Utilize em conformidade com LGPD (Brasil) e RGPD (Portugal).

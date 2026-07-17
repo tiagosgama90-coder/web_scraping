@@ -82,6 +82,16 @@ $Shortcut.Description = "Extrator de emails de empresas - Brasil e Portugal"
 $Shortcut.Save()
 Write-Step "Atalho criado no Ambiente de Trabalho."
 
+# 6. Criar atalho para app nativo
+$StartShortcut = Join-Path $Desktop "Company Email Extractor.lnk"
+if (Test-Path $ShortcutPath) { Remove-Item $ShortcutPath -Force }
+$Shortcut = $WshShell.CreateShortcut($StartShortcut)
+$Shortcut.TargetPath = Join-Path $AppDir "ABRIR SOFTWARE.bat"
+$Shortcut.WorkingDirectory = $AppDir
+$Shortcut.Description = "Extrator de emails - App nativo Windows"
+$Shortcut.Save()
+Write-Step "Atalho criado no Ambiente de Trabalho."
+
 # 5. Marcar instalacao como concluida
 $VersionFile = Join-Path $RuntimeDir "installed.txt"
 Set-Content -Path $VersionFile -Value (Get-Date -Format "yyyy-MM-dd HH:mm:ss")

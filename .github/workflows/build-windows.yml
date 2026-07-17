@@ -1,10 +1,10 @@
-name: Build Windows Executable
+name: Build Windows Native App
 
 on:
   push:
     branches: [main]
     paths:
-      - 'app.py'
+      - 'desktop_app.py'
       - 'launcher.py'
       - 'cnpj_extractor/**'
       - 'requirements.txt'
@@ -13,14 +13,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-exe:
     runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -29,19 +28,43 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-build.txt
 
-      - name: Build executable with PyInstaller
-        run: |
-          python -m PyInstaller company_email_extractor.spec --noconfirm
+      - name: Build native executable
+        run: python -m PyInstaller company_email_extractor.spec --noconfirm
 
-      - name: Create portable ZIP
-        run: |
-          Compress-Archive -Path dist\CompanyEmailExtractor\* -DestinationPath dist\CompanyEmailExtractor-Windows.zip
-
-      - name: Upload Windows build artifact
+      - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
-          name: CompanyEmailExtractor-Windows
+          name: CompanyEmailExtractor-Setup-Files
           path: |
-            dist/CompanyEmailExtractor-Windows.zip
-            dist/CompanyEmailExtractor/
+            dist/CompanyEmailExtractor.exe
+          retention-days: 90
+
+  build-installer:
+    runs-on: windows-latest
+    needs: build-exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies and build exe
+        run: |
+          pip install -r requirements.txt -r requirements-build.txt
+          python -m PyInstaller company_email_extractor.spec --noconfirm
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CompanyEmailExtractor-Installer
+          path: dist/CompanyEmailExtractor-Setup.exe
           retention-days: 90

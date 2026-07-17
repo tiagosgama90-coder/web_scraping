@@ -1,12 +1,11 @@
 @echo off
 chcp 65001 >nul
-title Company Email Extractor - Build Windows
+title Company Email Extractor - Build
 cd /d "%~dp0"
 
 echo.
 echo  ========================================================
-echo   A gerar executavel Windows...
-echo   (Requer Python instalado neste PC)
+echo   A gerar executavel Windows NATIVO (sem browser)...
 echo  ========================================================
 echo.
 
@@ -17,10 +16,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo >> A instalar dependencias de build...
 python -m pip install -r requirements.txt -r requirements-build.txt --quiet
-
-echo >> A compilar executavel (pode demorar 5-10 minutos)...
 python -m PyInstaller company_email_extractor.spec --noconfirm
 
 if errorlevel 1 (
@@ -30,12 +26,10 @@ if errorlevel 1 (
 )
 
 echo.
-echo  ========================================================
-echo   BUILD CONCLUIDO!
-echo   Pasta: dist\CompanyEmailExtractor\
-echo   Executavel: dist\CompanyEmailExtractor\CompanyEmailExtractor.exe
-echo  ========================================================
+echo  Executavel criado: dist\CompanyEmailExtractor.exe
 echo.
-echo  Copie a pasta inteira para outro PC Windows - funciona sem Python.
+echo  Para criar instalador Setup (.exe):
+echo    1. Instale Inno Setup: https://jrsoftware.org/isinfo.php
+echo    2. Abra installer\setup.iss e compile
 echo.
 pause
