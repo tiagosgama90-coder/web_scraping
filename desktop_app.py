@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.1."""
+"""Aplicação desktop nativa — Company Email Extractor v2.3."""
 
 from __future__ import annotations
 
+import os
 import threading
 import tkinter as tk
+from datetime import datetime
+from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 import customtkinter as ctk
@@ -22,6 +25,7 @@ from cnpj_extractor.gui_text import ADD_SOURCE_HELP, GUIDE_TEXT
 from cnpj_extractor.sources import COUNTRIES
 from cnpj_extractor.sources.custom_adapter import CustomSourceAdapter
 from cnpj_extractor.sources.fiz_portugal import FIZ_SITEMAP_INDEX
+from cnpj_extractor.sources.receita_federal import ReceitaFederalSource
 from cnpj_extractor.sources.sitemap_generic import GenericSitemapSource
 from cnpj_extractor.sources.website_scraper import WebScraperSource
 from cnpj_extractor.utils import dedupe_records, format_cnpj
@@ -30,7 +34,10 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.2.0"
+APP_VERSION = "2.3.0"
+DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
+DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
+DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
 BUILTIN_PREFIX = "★ "
 CUSTOM_PREFIX = "✦ "
 SPECIAL_SOURCES = {
@@ -175,7 +182,7 @@ class CompanyEmailApp(ctk.CTk):
         # Sidebar
         sidebar = ctk.CTkFrame(self, width=300, corner_radius=0)
         sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_rowconfigure(14, weight=1)
+        sidebar.grid_rowconfigure(18, weight=1)
 
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
@@ -215,21 +222,37 @@ class CompanyEmailApp(ctk.CTk):
         self.antibot_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             sidebar,
-            text="🛡 Modo Anti-Bot (Cloudflare)",
+            text="🛡 Anti-Bot (Playwright + Cloudflare)",
             variable=self.antibot_var,
         ).grid(row=12, column=0, padx=20, pady=6, sticky="w")
+
+        paths = ctk.CTkFrame(sidebar, fg_color="transparent")
+        paths.grid(row=13, column=0, padx=20, sticky="ew")
+        ctk.CTkLabel(paths, text="Pasta de downloads (BR/RFB)", anchor="w").pack(fill="x")
+        self.data_dir_var = ctk.StringVar(value=str(DEFAULT_DATA_DIR))
+        data_row = ctk.CTkFrame(paths, fg_color="transparent")
+        data_row.pack(fill="x", pady=(2, 6))
+        ctk.CTkEntry(data_row, textvariable=self.data_dir_var).pack(side="left", fill="x", expand=True, padx=(0, 4))
+        ctk.CTkButton(data_row, text="📂", width=36, command=self._browse_data_dir).pack(side="right")
+
+        ctk.CTkLabel(paths, text="Pasta de exportação", anchor="w").pack(fill="x")
+        self.export_dir_var = ctk.StringVar(value=str(DEFAULT_EXPORT_DIR))
+        export_row = ctk.CTkFrame(paths, fg_color="transparent")
+        export_row.pack(fill="x", pady=(2, 0))
+        ctk.CTkEntry(export_row, textvariable=self.export_dir_var).pack(side="left", fill="x", expand=True, padx=(0, 4))
+        ctk.CTkButton(export_row, text="📂", width=36, command=self._browse_export_dir).pack(side="right")
 
         self.start_btn = ctk.CTkButton(sidebar, text="▶  Iniciar Extração", height=44,
                                        font=ctk.CTkFont(size=15, weight="bold"),
                                        command=self._start_extraction)
-        self.start_btn.grid(row=14, column=0, padx=20, pady=(10, 4), sticky="ew")
+        self.start_btn.grid(row=18, column=0, padx=20, pady=(10, 4), sticky="ew")
 
         self.stop_btn = ctk.CTkButton(sidebar, text="⏹  Parar", height=36, fg_color="#c0392b",
                                      hover_color="#962d22", command=self._stop_extraction, state="disabled")
-        self.stop_btn.grid(row=15, column=0, padx=20, pady=(4, 12), sticky="ew")
+        self.stop_btn.grid(row=19, column=0, padx=20, pady=(4, 12), sticky="ew")
 
         ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=16, column=0, padx=20, pady=(0, 16), sticky="ew")
+                      command=lambda: self.tabview.set("📖 Guia")).grid(row=20, column=0, padx=20, pady=(0, 16), sticky="ew")
 
         # Main tabs
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
@@ -422,6 +445,19 @@ class CompanyEmailApp(ctk.CTk):
             ctk.CTkOptionMenu(self.filter_frame, variable=self.uf_var, values=BRAZIL_UFS, width=260).pack(fill="x", pady=4)
             self.only_active_var = ctk.BooleanVar(value=True)
             ctk.CTkCheckBox(self.filter_frame, text="Apenas ativas", variable=self.only_active_var).pack(anchor="w")
+            self.load_razao_var = ctk.BooleanVar(value=False)
+            ctk.CTkCheckBox(
+                self.filter_frame,
+                text="Carregar razão social (requer Empresas*.zip)",
+                variable=self.load_razao_var,
+            ).pack(anchor="w")
+            ctk.CTkButton(
+                self.filter_frame,
+                text="🗑 Limpar ZIPs corrompidos",
+                height=28,
+                fg_color="gray40",
+                command=self._clear_corrupt_rfb_downloads,
+            ).pack(anchor="w", pady=(6, 0))
         elif country == "PT":
             ctk.CTkLabel(self.filter_frame, text="Distrito (opcional)", anchor="w").pack(fill="x")
             self.distrito_var = ctk.StringVar()
@@ -522,7 +558,8 @@ class CompanyEmailApp(ctk.CTk):
                     "partitions": list(range(10)) if auto else [0],
                     "uf_filter": None if not uf or uf.get() == "Todos" else uf.get(),
                     "only_active": getattr(self, "only_active_var", ctk.BooleanVar(value=True)).get(),
-                    "load_razao_social": True,
+                    "load_razao_social": getattr(self, "load_razao_var", ctk.BooleanVar(value=False)).get(),
+                    "data_dir": self._get_data_dir(),
                 })
             elif source_key == "dadosbrasil_api":
                 uf = getattr(self, "uf_var", None)
@@ -619,12 +656,64 @@ class CompanyEmailApp(ctk.CTk):
         self._update_stats()
         self.progress.set(0)
 
+    def _get_data_dir(self) -> str:
+        path = Path(self.data_dir_var.get().strip() or DEFAULT_DATA_DIR)
+        path.mkdir(parents=True, exist_ok=True)
+        return str(path)
+
+    def _get_export_dir(self) -> Path:
+        path = Path(self.export_dir_var.get().strip() or DEFAULT_EXPORT_DIR)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _browse_data_dir(self) -> None:
+        folder = filedialog.askdirectory(
+            title="Escolher pasta para downloads (ZIPs Receita Federal)",
+            initialdir=self._get_data_dir(),
+        )
+        if folder:
+            self.data_dir_var.set(folder)
+
+    def _browse_export_dir(self) -> None:
+        folder = filedialog.askdirectory(
+            title="Escolher pasta de exportação",
+            initialdir=str(self._get_export_dir()),
+        )
+        if folder:
+            self.export_dir_var.set(folder)
+
+    def _clear_corrupt_rfb_downloads(self) -> None:
+        data_dir = Path(self._get_data_dir())
+        removed = 0
+        for pattern in ("Empresas*.zip", "Estabelecimentos*.zip", "*.zip.part"):
+            for path in data_dir.glob(pattern):
+                if path.suffix == ".part" or not ReceitaFederalSource.is_valid_zip_file(path):
+                    try:
+                        path.unlink()
+                        removed += 1
+                    except OSError:
+                        pass
+        messagebox.showinfo(
+            APP_NAME,
+            f"Removidos {removed} ficheiro(s) corrompido(s) ou incompleto(s).\n\nPasta: {data_dir}",
+        )
+
+    def _default_export_path(self, extension: str) -> str:
+        export_dir = self._get_export_dir()
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        country = self.country_var.get().lower()
+        return str(export_dir / f"empresas_{country}_{stamp}.{extension}")
+
     def _export_sqlite(self) -> None:
         if not self.records:
             messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
             return
-        path = filedialog.asksaveasfilename(defaultextension=".db",
-                                            filetypes=[("SQLite", "*.db")])
+        path = filedialog.asksaveasfilename(
+            defaultextension=".db",
+            filetypes=[("SQLite", "*.db")],
+            initialdir=str(self._get_export_dir()),
+            initialfile=Path(self._default_export_path("db")).name,
+        )
         if path:
             export_sqlite(self.records, path)
             messagebox.showinfo(APP_NAME, f"Guardado:\n{path}")
@@ -633,8 +722,12 @@ class CompanyEmailApp(ctk.CTk):
         if not self.records:
             messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
             return
-        path = filedialog.asksaveasfilename(defaultextension=".csv",
-                                            filetypes=[("CSV", "*.csv")])
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV", "*.csv")],
+            initialdir=str(self._get_export_dir()),
+            initialfile=Path(self._default_export_path("csv")).name,
+        )
         if path:
             export_csv(self.records, path)
             messagebox.showinfo(APP_NAME, f"Guardado:\n{path}")

@@ -20,6 +20,7 @@ from cnpj_extractor.utils import (
 )
 
 CASADOS_DADOS_BASE = "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/"
+MIN_ZIP_BYTES = 100
 ESTABELECIMENTOS_COLUMNS = [
     "cnpj_basico",
     "cnpj_ordem",
@@ -82,26 +83,52 @@ class ReceitaFederalSource(BaseSource):
             raise RuntimeError("Não foi possível listar versões dos dados abertos.")
         return releases[-1]
 
+    @staticmethod
+    def is_valid_zip_file(path: Path) -> bool:
+        """Verifica se o ficheiro ZIP existe e contém CSV válido."""
+        if not path.exists() or path.stat().st_size < MIN_ZIP_BYTES:
+            return False
+        try:
+            with zipfile.ZipFile(path) as archive:
+                if archive.testzip() is not None:
+                    return False
+                return any(name.lower().endswith(".csv") for name in archive.namelist())
+        except (zipfile.BadZipFile, OSError):
+            return False
+
     def download_file(
         self,
         release: str,
         filename: str,
         dest_dir: Path,
         progress_callback: ProgressCallback = None,
+        *,
+        force_redownload: bool = False,
     ) -> Path:
         dest_dir.mkdir(parents=True, exist_ok=True)
         output = dest_dir / filename
-        if output.exists() and output.stat().st_size > 0:
-            self._report(progress_callback, 1.0, f"{filename} já existe localmente.")
-            return output
+        if output.exists() and not force_redownload:
+            if self.is_valid_zip_file(output):
+                self._report(progress_callback, 1.0, f"{filename} já existe localmente.")
+                return output
+            self._report(
+                progress_callback,
+                0.0,
+                f"{filename} corrompido ou incompleto — a transferir de novo...",
+            )
+            output.unlink(missing_ok=True)
 
         url = urljoin(CASADOS_DADOS_BASE, f"{release}/{filename}")
-        self._report(progress_callback, 0.0, f"Baixando {filename}...")
-        with requests.get(url, stream=True, timeout=120) as response:
+        self._report(progress_callback, 0.0, f"A transferir {filename}...")
+        temp_output = output.with_suffix(output.suffix + ".part")
+        if temp_output.exists():
+            temp_output.unlink(missing_ok=True)
+
+        with requests.get(url, stream=True, timeout=300) as response:
             response.raise_for_status()
             total = int(response.headers.get("content-length", 0))
             downloaded = 0
-            with open(output, "wb") as handle:
+            with open(temp_output, "wb") as handle:
                 for chunk in response.iter_content(chunk_size=1024 * 1024):
                     if not chunk:
                         continue
@@ -111,8 +138,17 @@ class ReceitaFederalSource(BaseSource):
                         self._report(
                             progress_callback,
                             downloaded / total,
-                            f"Baixando {filename} ({downloaded // (1024 * 1024)} MB)",
+                            f"A transferir {filename} ({downloaded // (1024 * 1024)} MB)",
                         )
+
+        if not self.is_valid_zip_file(temp_output):
+            temp_output.unlink(missing_ok=True)
+            raise RuntimeError(
+                f"O ficheiro transferido '{filename}' não é um ZIP válido. "
+                "Verifique a ligação à internet e tente novamente."
+            )
+
+        temp_output.replace(output)
         return output
 
     def load_empresas_lookup(
@@ -128,6 +164,8 @@ class ReceitaFederalSource(BaseSource):
         for index, part in enumerate(parts):
             filename = f"Empresas{part}.zip"
             zip_path = self.download_file(release, filename, data_dir, progress_callback)
+            if not self.is_valid_zip_file(zip_path):
+                raise RuntimeError(f"ZIP inválido após transferência: {filename}")
             with zipfile.ZipFile(zip_path) as archive:
                 csv_name = next(name for name in archive.namelist() if name.lower().endswith(".csv"))
                 with archive.open(csv_name) as raw:
@@ -147,6 +185,8 @@ class ReceitaFederalSource(BaseSource):
     def _iter_estabelecimentos_rows(
         self, zip_path: Path
     ) -> Iterator[list[str]]:
+        if not self.is_valid_zip_file(zip_path):
+            raise zipfile.BadZipFile(f"Ficheiro ZIP inválido: {zip_path.name}")
         with zipfile.ZipFile(zip_path) as archive:
             csv_name = next(name for name in archive.namelist() if name.lower().endswith(".csv"))
             with archive.open(csv_name) as raw:
