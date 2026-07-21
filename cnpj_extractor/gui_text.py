@@ -8,21 +8,34 @@ de qualquer país, site ou base de dados.
 
 PASSO 1 — ESCOLHER O PAÍS
 --------------------------
-Na barra lateral, escolha:
-  • PT = Portugal
-  • BR = Brasil
-  • ES = Espanha (Empresite, Páginas Amarillas, etc.)
-  • OUTRO = qualquer outro país/site
+Na barra lateral, escolha o país:
+  • PT = Portugal (FIZ — ~490k empresas)
+  • BR = Brasil (Receita Federal — ~67M empresas)
+  • ES, FR, DE, IT, GB = Europa (diretórios empresariais)
+  • MX, AR, CO, CL, PE = América Latina
+  • US, CA = América do Norte
+  • NL, BE, PL, RO = mais países europeus
+  • OUTRO = qualquer site personalizado
+
+Separador «🌍 Diretórios» — lista TODAS as bases por país.
 
 
 PASSO 2 — ESCOLHER A FONTE
 ---------------------------
-Fontes pré-definidas:
-  • Diretório FIZ (Portugal) — ~490.000 empresas
-  • Receita Federal (Brasil) — ~67 milhões de empresas
-  • DadosBrasil API (Brasil) — consultas rápidas
-  • Empresite (Espanha) — ~4 milhões de empresas via sitemap
-  • Separador «Espanha» — 30+ diretórios (eInforma, Axesor, Kompass…)
+Fontes oficiais / principais:
+  • 🇵🇹 FIZ Portugal — ~490.000 empresas (sitemap)
+  • 🇧🇷 Receita Federal — ~67 milhões (dados abertos)
+  • 🇪🇸 Empresite — ~4 milhões (sitemap Espanha)
+
+Diretórios por país (separador «Diretórios»):
+  • 🇫🇷 França: Societe.com, Pages Jaunes, Pappers…
+  • 🇩🇪 Alemanha: Gelbe Seiten, North Data, WLW…
+  • 🇮🇹 Itália: Pagine Gialle, Kompass…
+  • 🇬🇧 Reino Unido: Yell.com, Kompass UK…
+  • 🇲🇽 México: Sección Amarilla, DENUE…
+  • 🇦🇷 Argentina, 🇨🇴 Colômbia, 🇨🇱 Chile, 🇵🇪 Peru
+  • 🇺🇸 EUA: Yellow Pages, Manta…
+  • 🇨🇦 Canadá, 🇳🇱 Holanda, 🇧🇪 Bélgica, 🇵🇱 Polónia, 🇷🇴 Roménia
 
 Fontes personalizadas (qualquer site):
   • Vá ao separador "Minhas Fontes"
@@ -120,13 +133,14 @@ Portugal (completo):
   País: PT | Fonte: FIZ | Modo: automático | Limite: 0
 
 Espanha (teste rápido):
-  Separador «Espanha» → Empresite → Usar
+  Separador «Diretórios» → Espanha → Empresite → Usar
   Pré-visualizar: 25 → ver emails no ecrã
-  Depois: Iniciar Extração com limite 100
 
-Espanha (completo):
-  País: ES | Fonte: Empresite | Província: Madrid (opcional)
-  Modo: automático | Anti-Bot: ON | Limite: 0
+França (teste):
+  Diretórios → França → Societe.com → Usar → Pré-visualizar 25
+
+Alemanha (teste):
+  Diretórios → Alemanha → Gelbe Seiten → Usar → Pré-visualizar 25
 
 Site qualquer (sitemap):
   Minhas Fontes → + Adicionar → Tipo: Sitemap

@@ -1,12 +1,12 @@
-# Company Email Extractor v2.8 — Guia Completo
+# Company Email Extractor v2.9 — Guia Completo
 
-**Software nativo Windows** para extrair emails e dados de empresas do Brasil, Portugal, **Espanha** e qualquer site.
+**Software nativo Windows** para extrair emails e dados de empresas do **Brasil**, **Portugal**, **16 países com diretórios** e qualquer site.
 
 - Janela própria — **sem browser**, sem terminal, sem instalar Python
+- **19 países** no menu + sites personalizados
 - **Pré-visualização** — vê emails no ecrã antes de gravar ficheiros
 - Grava ficheiros **enquanto extrai** — ideal para milhões de registos
-- Filtra por **setor de atividade** (CNAE / CAE / ISIC)
-- Versão atual: **2.8.0**
+- Versão atual: **2.9.0**
 
 ---
 
@@ -37,8 +37,22 @@
 | 🇧🇷 Brasil | Receita Federal (ZIPs oficiais) | ~67 milhões de empresas |
 | 🇧🇷 Brasil | DadosBrasil API | Consultas por UF |
 | 🇵🇹 Portugal | Diretório FIZ | ~490.000 empresas |
-| 🇪🇸 Espanha | Empresite (sitemap) | ~4 milhões de empresas |
-| 🇪🇸 Espanha | 30+ diretórios (separador Espanha) | eInforma, Axesor, Kompass… |
+| 🇪🇸 Espanha | Empresite + 9 diretórios | ~4 milhões (Empresite) |
+| 🇫🇷 França | Societe.com, Pages Jaunes, Pappers… | Diretórios B2B |
+| 🇩🇪 Alemanha | Gelbe Seiten, North Data, WLW… | Diretórios B2B |
+| 🇮🇹 Itália | Pagine Gialle, Kompass… | Diretórios B2B |
+| 🇬🇧 Reino Unido | Yell.com, Kompass UK… | Diretórios B2B |
+| 🇲🇽 México | Sección Amarilla, DENUE… | Guias locais |
+| 🇦🇷 Argentina | Guía de Empresas, Páginas Amarillas… | Diretórios |
+| 🇨🇴 Colômbia | Páginas Amarillas CO… | Guias locais |
+| 🇨🇱 Chile | Amarillas.cl… | Guias locais |
+| 🇵🇪 Peru | Páginas Amarillas PE… | Guias locais |
+| 🇺🇸 EUA | Yellow Pages, Manta… | Diretórios B2B |
+| 🇨🇦 Canadá | Yellow Pages CA… | Guias locais |
+| 🇳🇱 Países Baixos | KVK, Detelefoongids… | Diretórios |
+| 🇧🇪 Bélgica | Golden Pages, Kompass… | Diretórios |
+| 🇵🇱 Polónia | Panorama Firm… | Diretórios |
+| 🇷🇴 Roménia | ListaFirme… | Diretórios |
 | 🌍 Qualquer | Site personalizado (URL/sitemap) | Conforme o site |
 
 ### Limpeza automática de emails
@@ -164,7 +178,7 @@ Instala Python portátil na pasta do projeto — não mexe no sistema.
 
 | Opção | Descrição | Recomendação |
 |-------|-----------|--------------|
-| **País** | PT, BR, **ES** ou OUTRO | Conforme a fonte |
+| **País** | PT, BR, ES, FR, DE, IT, GB, MX, AR, CO, CL, PE, US, CA, NL, BE, PL, RO ou OUTRO | Conforme a fonte |
 | **Fonte de dados** | FIZ, Receita Federal, personalizada… | Ver secção 5 |
 | **Modo** | `limitado` = teste / `automatico` = completo | Teste com limitado |
 | **Limite** | `50` = teste / `0` = sem limite | Começar com 50 |
@@ -224,7 +238,8 @@ Aparece abaixo dos filtros de país. Etiqueta muda automaticamente:
 | Separador | Conteúdo |
 |-----------|------------|
 | **📊 Extrair** | Tabela, progresso, exportação |
-| **🇪🇸 Espanha** | Catálogo de 30+ diretórios empresariais |
+| **🇪🇸 Espanha** | Catálogo de diretórios empresariais |
+| **🌍 Diretórios** | Bases de dados de 16 países (ES, FR, DE, IT, GB, MX, AR, CO, CL, PE, US, CA, NL, BE, PL, RO) |
 | **➕ Minhas Fontes** | Adicionar sites/bases personalizadas |
 | **📖 Guia** | Ajuda integrada + teste rápido |
 
@@ -386,39 +401,42 @@ Filtro opcional: **distrito** (ex: Lisboa)
 
 ---
 
-## 8. Espanha
+## 8. Espanha e outros países (Diretórios)
 
-Espanha **não tem** uma base pública de emails como a Receita Federal do Brasil. O programa usa **diretórios empresariais** (Empresite, Páginas Amarillas, Kompass, etc.).
+A maioria dos países **não tem** uma base pública de emails como a Receita Federal do Brasil. O programa usa **diretórios empresariais** pré-configurados.
 
-### Configuração recomendada
+### Como usar (qualquer país com diretórios)
 
-| Opção | Valor |
-|-------|-------|
-| Separador | **🇪🇸 Espanha** → Empresite → **Usar** |
-| Pré-visualizar | **25** registos (ver emails no ecrã) |
-| Província | Opcional (Madrid, Barcelona, Valencia…) |
-| Modo | limitado (teste) / automatico (completo) |
-| Anti-Bot | ✅ Ativo (Empresite usa Cloudflare) |
-| Gravar enquanto extrai | ✅ Para extração completa |
+1. Abra o separador **🌍 Diretórios**
+2. Escolha o **país** no menu superior
+3. Clique **Usar** na fonte desejada
+4. **Pré-visualizar** (25) → rever emails na tabela
+5. **Iniciar Extração** → grava CSV/TXT/SQLite
 
-### Fluxo sugerido
+### Países disponíveis no separador Diretórios
 
-```
-1. Separador «Espanha» → escolher fonte → «Usar»
-2. «Pré-visualizar» (25) → rever emails na tabela
-3. «Iniciar Extração» → grava CSV/TXT/SQLite
-```
+| País | Fontes principais | Emails esperados |
+|------|-------------------|------------------|
+| 🇪🇸 Espanha | Empresite (sitemap) | 15–20% |
+| 🇫🇷 França | Societe.com, Pages Jaunes | Médio |
+| 🇩🇪 Alemanha | Gelbe Seiten, North Data | Médio |
+| 🇮🇹 Itália | Pagine Gialle | Médio |
+| 🇬🇧 Reino Unido | Yell.com | Médio |
+| 🇲🇽 México | Sección Amarilla | Médio |
+| 🇦🇷 Argentina | Guía de Empresas | Médio |
+| 🇨🇴 Colômbia | Páginas Amarillas | Médio |
+| 🇨🇱 Chile | Amarillas.cl | Médio |
+| 🇵🇪 Peru | Páginas Amarillas | Médio |
+| 🇺🇸 EUA | Yellow Pages, Manta | Médio |
+| 🇨🇦 Canadá | Yellow Pages CA | Médio |
+| 🇳🇱 Holanda | Detelefoongids | Médio |
+| 🇧🇪 Bélgica | Golden Pages | Médio |
+| 🇵🇱 Polónia | Panorama Firm | Médio |
+| 🇷🇴 Roménia | ListaFirme | Médio |
 
-### Fontes disponíveis (separador Espanha)
+> **Nota:** Registos oficiais (Companies House, BORME, KVK, etc.) raramente incluem emails — use guias comerciais (Yellow Pages, Kompass, etc.) para melhores resultados.
 
-| Fonte | Emails esperados | Notas |
-|-------|------------------|-------|
-| **Empresite** | 15–20% | Melhor opção — sitemap ~4M empresas |
-| Páginas Amarillas, QDQ, Cylex | Médio | Guias locais |
-| eInforma, Axesor, Iberinform | Baixo | Maioria paywall |
-| OpenMercantil / BORME | Raro | Dados oficiais, sem emails |
-
-### Filtro província (Empresite)
+### Espanha — detalhe Empresite
 
 No campo **Província**, escreva o nome (ex: `Madrid`, `Barcelona`). Filtra URLs do sitemap que contenham esse nome.
 
@@ -545,4 +563,4 @@ C:\Users\TeuNome\AppData\Local\Programs\Company Email Extractor\
 
 ---
 
-*Company Email Extractor v2.8.0 — Guia do utilizador*
+*Company Email Extractor v2.9.0 — Guia do utilizador*

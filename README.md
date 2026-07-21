@@ -1,6 +1,6 @@
-# Company Email Extractor v2.8
+# Company Email Extractor v2.9
 
-Software **nativo Windows** para extrair emails e dados de empresas do **Brasil**, **Portugal**, **Espanha** e **qualquer site**.
+Software **nativo Windows** para extrair emails e dados de empresas de **19 países** e **qualquer site**.
 
 **Janela própria — sem browser, sem terminal, sem configurar Python.**
 
@@ -10,21 +10,30 @@ Software **nativo Windows** para extrair emails e dados de empresas do **Brasil*
 
 **https://github.com/tiagosgama90-coder/web_scraping/releases/latest**
 
-Ficheiro: `CompanyEmailExtractor-Setup.exe` (~83 MB)
-
-O instalador inclui o programa + guias **LEIA-ME.txt** e **COMO_USAR.md**.
+Ficheiro: `CompanyEmailExtractor-Setup.exe`
 
 ---
 
-## O que faz (resumo)
+## Países suportados (v2.9)
 
-- Extrai emails de Receita Federal (BR), FIZ (PT), **Empresite e 30+ diretórios (ES)** e sites personalizados
-- **Pré-visualização** — vê emails captados no ecrã antes de gravar ficheiros (v2.8)
-- Limpa emails inválidos, duplicados e lixo automaticamente
-- Grava **CSV**, **TXT** e **SQLite** enquanto extrai (v2.6)
-- Divide em ficheiros de **1000 linhas** (abre no Excel)
-- Brasil: extrai **UF por UF** (SP, RJ, MG…) em pastas separadas
-- Anti-bot integrado (Cloudflare, Playwright)
+| Tipo | Países |
+|------|--------|
+| **Dados oficiais / principais** | 🇧🇷 Brasil (Receita Federal), 🇵🇹 Portugal (FIZ) |
+| **Diretórios empresariais** | 🇪🇸 ES, 🇫🇷 FR, 🇩🇪 DE, 🇮🇹 IT, 🇬🇧 GB, 🇲🇽 MX, 🇦🇷 AR, 🇨🇴 CO, 🇨🇱 CL, 🇵🇪 PE, 🇺🇸 US, 🇨🇦 CA, 🇳🇱 NL, 🇧🇪 BE, 🇵🇱 PL, 🇷🇴 RO |
+| **Personalizado** | 🌍 Qualquer site (sitemap/URL) |
+
+Separador **🌍 Diretórios** — lista todas as bases por país com botão **Usar**.
+
+---
+
+## Funcionalidades
+
+- **Pré-visualização** — vê emails no ecrã antes de gravar
+- Gravação em tempo real (CSV, TXT, SQLite)
+- Ficheiros de 1000 linhas para Excel
+- Brasil: extração UF por UF
+- Anti-bot (Cloudflare, Playwright)
+- Filtro por setor (CNAE, CAE, NACE, NAICS…)
 
 ---
 
@@ -32,30 +41,11 @@ O instalador inclui o programa + guias **LEIA-ME.txt** e **COMO_USAR.md**.
 
 | Ficheiro | Conteúdo |
 |----------|----------|
-| **[COMO_USAR.md](COMO_USAR.md)** | Guia completo v2.8 |
-| **[LEIA-ME.txt](LEIA-ME.txt)** | Resumo rápido (vai no instalador) |
+| **[COMO_USAR.md](COMO_USAR.md)** | Guia completo v2.9 |
+| **[LEIA-ME.txt](LEIA-ME.txt)** | Resumo (incluído no instalador) |
 
 ---
 
-## Instalação rápida
+## Licença
 
-1. Descarrega `CompanyEmailExtractor-Setup.exe`
-2. Instala → abre pelo Menu Iniciar
-3. Lê `LEIA-ME.txt` na pasta de instalação
-
-Alternativa (código fonte): `INSTALAR.bat` → `ABRIR SOFTWARE.bat`
-
----
-
-## Build (desenvolvedores)
-
-```bash
-build_windows.bat
-installer\build_setup.bat   # Gera Setup.exe + inclui guias
-```
-
----
-
-## Licença e aviso legal
-
-Use os dados em conformidade com **LGPD** (Brasil) e **RGPD** (Portugal/Espanha).
+Use os dados em conformidade com **LGPD**, **RGPD** e leis locais de cada país.

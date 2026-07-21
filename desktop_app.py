@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.8."""
+"""Aplicação desktop nativa — Company Email Extractor v2.9."""
 
 from __future__ import annotations
 
@@ -46,8 +46,14 @@ from cnpj_extractor.sector_filters import (
     matches_sector,
     parse_sector_filters,
 )
-from cnpj_extractor.sources import COUNTRIES
-from cnpj_extractor.spain_catalog import SPAIN_DIRECTORY_CATALOG, catalog_source_key
+from cnpj_extractor.country_catalogs import (
+    CATALOG_COUNTRY_CODES,
+    COUNTRY_CATALOG_REGISTRY,
+    catalog_source_key_for_country,
+    find_catalog_entry,
+    get_country_catalog,
+)
+from cnpj_extractor.sources import COUNTRIES, COUNTRY_MENU_ORDER
 from cnpj_extractor.sources.custom_adapter import CustomSourceAdapter
 from cnpj_extractor.sources.fiz_portugal import FIZ_SITEMAP_INDEX
 from cnpj_extractor.sources.receita_federal import ReceitaFederalSource
@@ -60,7 +66,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.8.0"
+APP_VERSION = "2.9.0"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -108,7 +114,7 @@ class AddSourceDialog(ctk.CTkToplevel):
 
         ctk.CTkLabel(form, text="País", anchor="w").pack(fill="x", pady=(8, 0))
         self.country_var = ctk.StringVar(value="OUTRO")
-        ctk.CTkOptionMenu(form, variable=self.country_var, values=["PT", "BR", "ES", "OUTRO"]).pack(fill="x", pady=4)
+        ctk.CTkOptionMenu(form, variable=self.country_var, values=COUNTRY_MENU_ORDER).pack(fill="x", pady=4)
 
         ctk.CTkLabel(form, text="URL principal / Sitemap", anchor="w").pack(fill="x", pady=(8, 0))
         self.url_var = ctk.StringVar(value="https://")
@@ -219,14 +225,19 @@ class CompanyEmailApp(ctk.CTk):
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
         )
-        ctk.CTkLabel(sidebar, text="BR • PT • ES • Sites", font=ctk.CTkFont(size=12), text_color="gray").grid(
+        ctk.CTkLabel(sidebar, text="BR • PT • ES • FR • DE • IT • +12 países", font=ctk.CTkFont(size=11), text_color="gray").grid(
             row=1, column=0, padx=20, pady=(0, 12), sticky="w"
         )
 
         ctk.CTkLabel(sidebar, text="País", anchor="w").grid(row=2, column=0, padx=20, sticky="ew")
         self.country_var = ctk.StringVar(value="PT")
-        ctk.CTkOptionMenu(sidebar, variable=self.country_var, values=["PT", "BR", "ES", "OUTRO"],
-                          command=self._on_country_change, width=260).grid(row=3, column=0, padx=20, pady=(4, 10))
+        ctk.CTkOptionMenu(
+            sidebar,
+            variable=self.country_var,
+            values=COUNTRY_MENU_ORDER,
+            command=self._on_country_change,
+            width=260,
+        ).grid(row=3, column=0, padx=20, pady=(4, 10))
 
         ctk.CTkLabel(sidebar, text="Fonte de dados", anchor="w").grid(row=4, column=0, padx=20, sticky="ew")
         self.source_var = ctk.StringVar(value="")
@@ -366,12 +377,12 @@ class CompanyEmailApp(ctk.CTk):
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
         self.tabview.grid(row=0, column=1, sticky="nsew")
         tab_extract = self.tabview.add("📊 Extrair")
-        tab_spain = self.tabview.add("🇪🇸 Espanha")
+        tab_directories = self.tabview.add("🌍 Diretórios")
         tab_sources = self.tabview.add("➕ Minhas Fontes")
         tab_guide = self.tabview.add("📖 Guia")
 
         self._build_extract_tab(tab_extract)
-        self._build_spain_tab(tab_spain)
+        self._build_directories_tab(tab_directories)
         self._build_sources_tab(tab_sources)
         self._build_guide_tab(tab_guide)
 
@@ -435,72 +446,81 @@ class CompanyEmailApp(ctk.CTk):
         ctk.CTkButton(exp, text="🗑 Limpar", command=self._clear_results, width=100,
                       fg_color="gray40").pack(side="right")
 
-    def _build_spain_tab(self, parent: ctk.CTkFrame) -> None:
+    def _build_directories_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(1, weight=1)
+        parent.grid_rowconfigure(2, weight=1)
 
+        top = ctk.CTkFrame(parent, fg_color="transparent")
+        top.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
         ctk.CTkLabel(
+            top,
+            text="Bases de dados e diretórios empresariais por país",
+            font=ctk.CTkFont(size=15, weight="bold"),
+        ).pack(side="left")
+        self.catalog_country_var = ctk.StringVar(value="ES")
+        ctk.CTkOptionMenu(
+            top,
+            variable=self.catalog_country_var,
+            values=CATALOG_COUNTRY_CODES,
+            command=self._refresh_directories_list,
+            width=180,
+        ).pack(side="right")
+
+        self._catalog_hint_label = ctk.CTkLabel(
             parent,
-            text="Diretórios empresariais em Espanha — escolha uma fonte e clique «Usar».\n"
-                 "Recomendado: Empresite (sitemap, ~4M empresas). Use «Pré-visualizar» para ver emails no ecrã.",
-            font=ctk.CTkFont(size=12),
+            text="",
+            font=ctk.CTkFont(size=11),
             text_color="gray",
             justify="left",
-        ).grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+        )
+        self._catalog_hint_label.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
 
-        scroll = ctk.CTkScrollableFrame(parent)
-        scroll.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self._directories_scroll = ctk.CTkScrollableFrame(parent)
+        self._directories_scroll.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self._refresh_directories_list()
 
-        for entry in SPAIN_DIRECTORY_CATALOG:
-            row = ctk.CTkFrame(scroll, fg_color=("gray90", "gray20"))
+    def _refresh_directories_list(self, _=None) -> None:
+        for widget in self._directories_scroll.winfo_children():
+            widget.destroy()
+        code = self.catalog_country_var.get()
+        meta = COUNTRY_CATALOG_REGISTRY.get(code, {})
+        self._catalog_hint_label.configure(
+            text=meta.get("catalog_hint", "Escolha uma fonte e clique «Usar». Depois «Pré-visualizar» para ver emails.")
+        )
+        for entry in get_country_catalog(code):
+            row = ctk.CTkFrame(self._directories_scroll, fg_color=("gray90", "gray20"))
             row.pack(fill="x", pady=3, padx=2)
 
             left = ctk.CTkFrame(row, fg_color="transparent")
             left.pack(side="left", fill="both", expand=True, padx=8, pady=6)
 
+            ctk.CTkLabel(left, text=entry["name"], font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w")
             ctk.CTkLabel(
-                left, text=entry["name"], font=ctk.CTkFont(size=12, weight="bold"),
+                left, text=entry["description"], font=ctk.CTkFont(size=10),
+                text_color="gray", wraplength=480, justify="left",
             ).pack(anchor="w")
             ctk.CTkLabel(
-                left,
-                text=entry["description"],
-                font=ctk.CTkFont(size=10),
-                text_color="gray",
-                wraplength=480,
-                justify="left",
-            ).pack(anchor="w")
-            ctk.CTkLabel(
-                left,
-                text=entry["url"],
-                font=ctk.CTkFont(size=9),
-                text_color="#4a9eff",
-                wraplength=480,
-                justify="left",
+                left, text=entry["url"], font=ctk.CTkFont(size=9),
+                text_color="#4a9eff", wraplength=480, justify="left",
             ).pack(anchor="w")
 
             ctk.CTkLabel(
-                row,
-                text=entry.get("emails", "—"),
-                font=ctk.CTkFont(size=9),
-                text_color="gray",
-                width=72,
+                row, text=entry.get("emails", "—"), font=ctk.CTkFont(size=9),
+                text_color="gray", width=72,
             ).pack(side="right", padx=4)
 
             ctk.CTkButton(
-                row,
-                text="Usar",
-                width=64,
-                height=28,
-                command=lambda eid=entry["id"]: self._use_spain_source(eid),
+                row, text="Usar", width=64, height=28,
+                command=lambda c=code, eid=entry["id"]: self._use_catalog_source(c, eid),
             ).pack(side="right", padx=8, pady=6)
 
-    def _use_spain_source(self, catalog_id: str) -> None:
-        entry = next((e for e in SPAIN_DIRECTORY_CATALOG if e["id"] == catalog_id), None)
+    def _use_catalog_source(self, country_code: str, catalog_id: str) -> None:
+        entry = next((e for e in get_country_catalog(country_code) if e["id"] == catalog_id), None)
         if not entry:
             return
-        source_key = catalog_source_key(catalog_id)
-        self.country_var.set("ES")
-        self._on_country_change("ES")
+        source_key = catalog_source_key_for_country(country_code, catalog_id)
+        self.country_var.set(country_code)
+        self._on_country_change(country_code)
         label = next(
             (lbl for lbl, key in self._source_map.items() if key == f"builtin:{source_key}"),
             None,
@@ -508,8 +528,9 @@ class CompanyEmailApp(ctk.CTk):
         if label:
             self.source_var.set(label)
         self.tabview.set("📊 Extrair")
+        country_name = COUNTRIES[country_code]["name"]
         self._set_status(
-            f"Fonte Espanha: {entry['name']}. Clique «Pré-visualizar» para ver emails antes da extração completa."
+            f"{country_name}: {entry['name']}. Clique «Pré-visualizar» para ver emails antes da extração completa."
         )
 
     def _build_sources_tab(self, parent: ctk.CTkFrame) -> None:
@@ -717,18 +738,19 @@ class CompanyEmailApp(ctk.CTk):
             ctk.CTkLabel(self.filter_frame, text="Distrito (opcional)", anchor="w").pack(fill="x")
             self.distrito_var = ctk.StringVar()
             ctk.CTkEntry(self.filter_frame, textvariable=self.distrito_var, placeholder_text="Ex: Lisboa", width=260).pack(fill="x", pady=4)
-        elif country == "ES":
-            ctk.CTkLabel(self.filter_frame, text="Província (opcional)", anchor="w").pack(fill="x")
-            self.provincia_var = ctk.StringVar()
+        elif country in CATALOG_COUNTRY_CODES:
+            meta = COUNTRY_CATALOG_REGISTRY[country]
+            ctk.CTkLabel(self.filter_frame, text=f"{meta['region_label']} (opcional)", anchor="w").pack(fill="x")
+            self.regiao_var = ctk.StringVar()
             ctk.CTkEntry(
                 self.filter_frame,
-                textvariable=self.provincia_var,
-                placeholder_text="Ex: Madrid, Barcelona, Valencia",
+                textvariable=self.regiao_var,
+                placeholder_text=meta.get("region_placeholder", ""),
                 width=260,
             ).pack(fill="x", pady=4)
             ctk.CTkLabel(
                 self.filter_frame,
-                text="Filtra URLs Empresite que contenham o nome da província",
+                text=meta.get("region_hint", ""),
                 font=ctk.CTkFont(size=11),
                 text_color="gray",
                 anchor="w",
@@ -737,8 +759,11 @@ class CompanyEmailApp(ctk.CTk):
 
         self._build_sector_filter_ui(country, saved_sector)
 
-        flags = {"PT": "🇵🇹 Portugal", "BR": "🇧🇷 Brasil", "ES": "🇪🇸 Espanha", "OUTRO": "🌍 Outro"}
-        self.stat_country.configure(text=flags.get(country, country))
+        if country in COUNTRIES:
+            cdata = COUNTRIES[country]
+            self.stat_country.configure(text=f"{cdata['flag']} {cdata['name']}")
+        else:
+            self.stat_country.configure(text=country)
         self._rebuild_source_menu()
 
     def _build_sector_filter_ui(self, country: str, value: str = "") -> None:
@@ -964,31 +989,49 @@ class CompanyEmailApp(ctk.CTk):
                 "max_crawl_pages": 50 if auto else 1,
             })
         elif source_key == "empresite_spain":
-            provincia = getattr(self, "provincia_var", None)
+            regiao = getattr(self, "regiao_var", None)
             kwargs.update({
                 "auto_discover": auto,
                 "max_sitemap_pages": None if auto else 1,
-                "provincia": provincia.get().strip() if provincia and provincia.get().strip() else None,
+                "provincia": regiao.get().strip() if regiao and regiao.get().strip() else None,
                 "aggressive_antibot": antibot,
             })
-        elif source_key.startswith("es_"):
-            catalog_id = source_key[3:]
-            entry = next((e for e in SPAIN_DIRECTORY_CATALOG if e["id"] == catalog_id), None)
-            if entry and entry["kind"] == "sitemap":
-                kwargs.update({
-                    "sitemap_url": entry["url"],
-                    "auto_discover": auto,
-                    "include_all_sitemaps": True,
-                    "sector_filter": sector,
-                })
-            else:
-                start = entry["url"] if entry else ""
-                kwargs.update({
-                    "start_url": start,
-                    "crawl_same_site": auto,
-                    "max_crawl_pages": 50 if auto else 1,
-                })
+        elif self._apply_catalog_kwargs(kwargs, source_key, country_key, auto=auto, sector=sector, antibot=antibot):
+            pass
         return kwargs
+
+    def _apply_catalog_kwargs(
+        self,
+        kwargs: dict,
+        source_key: str,
+        country_key: str,
+        *,
+        auto: bool,
+        sector: str | None,
+        antibot: bool,
+    ) -> bool:
+        prefix = f"{country_key.lower()}_"
+        if not source_key.startswith(prefix):
+            return False
+        entry = find_catalog_entry(country_key, source_key)
+        if not entry:
+            return False
+        if entry["kind"] == "sitemap":
+            kwargs.update({
+                "sitemap_url": entry["url"],
+                "auto_discover": auto,
+                "include_all_sitemaps": True,
+                "sector_filter": sector,
+                "aggressive_antibot": antibot,
+            })
+        else:
+            kwargs.update({
+                "start_url": entry["url"],
+                "crawl_same_site": auto,
+                "max_crawl_pages": 50 if auto else 1,
+                "aggressive_antibot": antibot,
+            })
+        return True
 
     def _run_extraction(self) -> None:
         try:
