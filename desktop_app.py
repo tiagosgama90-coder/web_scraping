@@ -20,7 +20,7 @@ from cnpj_extractor.custom_sources import (
     load_custom_sources,
     parse_url_list,
 )
-from cnpj_extractor.database import export_csv, export_sqlite
+from cnpj_extractor.database import export_csv, export_emails_for_marketing_csv, export_emails_only_csv, export_sqlite
 from cnpj_extractor.gui_text import ADD_SOURCE_HELP, GUIDE_TEXT
 from cnpj_extractor.sources import COUNTRIES
 from cnpj_extractor.sources.custom_adapter import CustomSourceAdapter
@@ -28,7 +28,7 @@ from cnpj_extractor.sources.fiz_portugal import FIZ_SITEMAP_INDEX
 from cnpj_extractor.sources.receita_federal import ReceitaFederalSource
 from cnpj_extractor.sources.sitemap_generic import GenericSitemapSource
 from cnpj_extractor.sources.website_scraper import WebScraperSource
-from cnpj_extractor.utils import dedupe_records, format_cnpj
+from cnpj_extractor.utils import dedupe_by_email, dedupe_records, filter_valid_email_records, format_cnpj
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -310,8 +310,12 @@ class CompanyEmailApp(ctk.CTk):
 
         exp = ctk.CTkFrame(parent, fg_color="transparent")
         exp.grid(row=3, column=0, sticky="ew", padx=12, pady=(4, 12))
-        ctk.CTkButton(exp, text="💾 SQLite (.db)", command=self._export_sqlite, width=160).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(exp, text="📄 CSV", command=self._export_csv, width=120).pack(side="left", padx=(0, 8))
+        ctk.CTkButton(exp, text="💾 SQLite (.db)", command=self._export_sqlite, width=140).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(exp, text="📄 CSV completo", command=self._export_csv, width=120).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(exp, text="📧 Só emails", command=self._export_emails_only, width=110,
+                      fg_color="#1a7a4c", hover_color="#145c38").pack(side="left", padx=(0, 6))
+        ctk.CTkButton(exp, text="📨 Marketing", command=self._export_marketing, width=100,
+                      fg_color="#6c3483", hover_color="#512664").pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="🗑 Limpar", command=self._clear_results, width=100,
                       fg_color="gray40").pack(side="right")
 
@@ -458,6 +462,20 @@ class CompanyEmailApp(ctk.CTk):
                 fg_color="gray40",
                 command=self._clear_corrupt_rfb_downloads,
             ).pack(anchor="w", pady=(6, 0))
+            self.use_local_zips_var = ctk.BooleanVar(value=False)
+            ctk.CTkCheckBox(
+                self.filter_frame,
+                text="Usar ZIPs já descarregados (pasta acima)",
+                variable=self.use_local_zips_var,
+            ).pack(anchor="w", pady=(4, 0))
+            ctk.CTkLabel(
+                self.filter_frame,
+                text="Coloque Estabelecimentos0.zip … 9.zip na pasta de downloads",
+                font=ctk.CTkFont(size=11),
+                text_color="gray",
+                anchor="w",
+                wraplength=250,
+            ).pack(fill="x")
         elif country == "PT":
             ctk.CTkLabel(self.filter_frame, text="Distrito (opcional)", anchor="w").pack(fill="x")
             self.distrito_var = ctk.StringVar()
@@ -559,6 +577,7 @@ class CompanyEmailApp(ctk.CTk):
                     "uf_filter": None if not uf or uf.get() == "Todos" else uf.get(),
                     "only_active": getattr(self, "only_active_var", ctk.BooleanVar(value=True)).get(),
                     "load_razao_social": getattr(self, "load_razao_var", ctk.BooleanVar(value=False)).get(),
+                    "use_local_zips_only": getattr(self, "use_local_zips_var", ctk.BooleanVar(value=False)).get(),
                     "data_dir": self._get_data_dir(),
                 })
             elif source_key == "dadosbrasil_api":
@@ -599,7 +618,8 @@ class CompanyEmailApp(ctk.CTk):
                 if len(new_records) % 10 == 0:
                     self.after(0, lambda n=len(new_records): self._set_status(f"{n:,} registos..."))
 
-            self.records = dedupe_records(new_records)
+            cleaned = filter_valid_email_records(new_records)
+            self.records = dedupe_by_email(cleaned) if only_email else dedupe_records(cleaned)
             self.after(0, self._on_extraction_done)
         except Exception as exc:
             self.after(0, self._on_extraction_error, str(exc))
@@ -703,6 +723,47 @@ class CompanyEmailApp(ctk.CTk):
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         country = self.country_var.get().lower()
         return str(export_dir / f"empresas_{country}_{stamp}.{extension}")
+
+    def _export_emails_only(self) -> None:
+        if not self.records:
+            messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
+            return
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV emails", "*.csv")],
+            initialdir=str(self._get_export_dir()),
+            initialfile=Path(self._default_export_path("csv")).with_suffix("").name + "_emails.csv",
+        )
+        if path:
+            export_emails_only_csv(self.records, path, unique_emails=True)
+            count = len({r.get("email") for r in self.records if r.get("email")})
+            messagebox.showinfo(
+                APP_NAME,
+                f"Lista limpa exportada!\n\n{count:,} e-mails únicos validados\n\n{path}\n\n"
+                "Abra no Excel — colunas: email, empresa, cnpj, uf, municipio",
+            )
+
+    def _export_marketing(self) -> None:
+        if not self.records:
+            messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
+            return
+        messagebox.showinfo(
+            APP_NAME,
+            "Formato para Mailchimp, Brevo, Sendinblue, etc.\n\n"
+            "IMPORTANTE (Lei brasileira LGPD / Marco Civil):\n"
+            "• Envio em massa sem consentimento pode ser ilegal\n"
+            "• Use apenas contactos que autorizaram receber e-mails\n"
+            "• Inclua sempre link de cancelar subscrição (opt-out)",
+        )
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV marketing", "*.csv")],
+            initialdir=str(self._get_export_dir()),
+            initialfile=Path(self._default_export_path("csv")).with_suffix("").name + "_marketing.csv",
+        )
+        if path:
+            export_emails_for_marketing_csv(self.records, path)
+            messagebox.showinfo(APP_NAME, f"Ficheiro para campanhas guardado:\n{path}")
 
     def _export_sqlite(self) -> None:
         if not self.records:

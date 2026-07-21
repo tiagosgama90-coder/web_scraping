@@ -195,6 +195,16 @@ class ReceitaFederalSource(BaseSource):
                 for row in reader:
                     yield row
 
+    def find_local_partitions(self, data_dir: str | Path) -> list[int]:
+        """Deteta ZIPs Estabelecimentos já descarregados na pasta."""
+        data_path = Path(data_dir)
+        parts: list[int] = []
+        for part in range(10):
+            zip_path = data_path / f"Estabelecimentos{part}.zip"
+            if self.is_valid_zip_file(zip_path):
+                parts.append(part)
+        return parts
+
     def extract(
         self,
         *,
@@ -206,11 +216,26 @@ class ReceitaFederalSource(BaseSource):
         only_with_email: bool = True,
         max_records: int | None = None,
         load_razao_social: bool = True,
+        use_local_zips_only: bool = False,
         progress_callback: ProgressCallback = None,
     ) -> Iterator[CompanyEmail]:
         data_path = Path(data_dir)
         release = release or self.get_latest_release()
-        parts = partitions if partitions is not None else list(range(10))
+
+        if use_local_zips_only:
+            parts = self.find_local_partitions(data_path)
+            if not parts:
+                raise RuntimeError(
+                    f"Nenhum ZIP válido encontrado em {data_path}. "
+                    "Coloque ficheiros Estabelecimentos0.zip … Estabelecimentos9.zip na pasta."
+                )
+            self._report(
+                progress_callback,
+                0.0,
+                f"A usar {len(parts)} ZIP(s) locais: {parts}",
+            )
+        else:
+            parts = partitions if partitions is not None else list(range(10))
 
         empresas_lookup: dict[str, str] = {}
         if load_razao_social:
@@ -222,7 +247,13 @@ class ReceitaFederalSource(BaseSource):
         total_parts = len(parts)
         for part_index, part in enumerate(parts):
             filename = f"Estabelecimentos{part}.zip"
-            zip_path = self.download_file(release, filename, data_path, progress_callback)
+            if use_local_zips_only:
+                zip_path = data_path / filename
+                if not self.is_valid_zip_file(zip_path):
+                    continue
+                self._report(progress_callback, part_index / total_parts, f"A processar {filename} (local)...")
+            else:
+                zip_path = self.download_file(release, filename, data_path, progress_callback)
             processed = 0
             for row in self._iter_estabelecimentos_rows(zip_path):
                 processed += 1
