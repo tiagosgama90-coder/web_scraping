@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.11 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.12 — LEIA-ME
 ================================================================================
 
 DOWNLOAD
@@ -49,19 +49,25 @@ PRIVACIDADE (SUA ESCOLHA)
   19. "Direta (IP normal)" — ligacao normal (predefinido)
   20. "Proxy / VPN (ocultar IP)" — trafego pela SUA VPN
   21. O software NAO inclui VPN gratuita — voce configura o proxy
+  22. "Ocultar MAC / ID maquina / impressao digital" — valores falsos
+      aleatorios por sessao (MAC, ID, hostname, navegador)
+  23. Sites NAO recebem o MAC real da placa — so identificadores HTTP
+
+JANELA
+  24. Redimensionavel — arraste os cantos para ajustar ao ecra
 
 ANTI-BOT
-  22. Contorna Cloudflare e protecoes (Playwright)
-  23. Ativo por defeito
+  25. Contorna Cloudflare e protecoes (Playwright)
+  26. Ativo por defeito
 
 EXPORTACAO
-  24. CSV filtrado, emails .txt, SQLite, marketing
-  25. NAO envia emails — so extrai e exporta
+  27. CSV filtrado, emails .txt, SQLite, marketing
+  28. NAO envia emails — so extrai e exporta
 
 O QUE NAO FAZ
-  26. Nao recolhe os seus dados pessoais
-  27. Nao inclui VPN gratuita
-  28. Nao garante 100% de emails em todos os sites
+  29. Nao recolhe os seus dados pessoais
+  30. Nao inclui VPN gratuita
+  31. Nao garante 100% de emails em todos os sites
 
 ================================================================================
   VPN / PROXY — E GRATUITA?

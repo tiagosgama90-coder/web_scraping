@@ -10,6 +10,11 @@ from urllib.parse import urlparse
 
 import requests
 
+from cnpj_extractor.fingerprint_privacy import (
+    USER_AGENTS_POOL,
+    get_fingerprint_profile,
+    playwright_stealth_script,
+)
 from cnpj_extractor.proxy_config import get_active_proxy, playwright_proxy, requests_proxies
 
 # Indicadores de bloqueio anti-bot na resposta HTML
@@ -27,24 +32,7 @@ BLOCK_PATTERNS = [
     r"unusual traffic",
 ]
 
-USER_AGENTS = [
-    (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    ),
-    (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0"
-    ),
-    (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-    ),
-    (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) "
-        "Gecko/20100101 Firefox/124.0"
-    ),
-]
+USER_AGENTS = USER_AGENTS_POOL
 
 BROWSER_IMPERSONATIONS = ["chrome120", "chrome119", "chrome110", "edge101", "safari17_0"]
 
@@ -93,10 +81,13 @@ class AntibotClient:
         return {"http": self.proxy_url, "https": self.proxy_url}
 
     def _random_headers(self, referer: str | None = None) -> dict[str, str]:
+        profile = get_fingerprint_profile(rotate=True)
+        user_agent = profile.user_agent if profile else random.choice(USER_AGENTS)
+        accept_language = profile.accept_language if profile else "pt-PT,pt;q=0.9,en-US;q=0.8,en;q=0.7"
         headers = {
-            "User-Agent": random.choice(USER_AGENTS),
+            "User-Agent": user_agent,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "pt-PT,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept-Language": accept_language,
             "Accept-Encoding": "gzip, deflate, br",
             "DNT": "1",
             "Connection": "keep-alive",
@@ -206,6 +197,7 @@ class AntibotClient:
             return None
 
         pw_proxy = playwright_proxy() if self.proxy_url else None
+        profile = get_fingerprint_profile(rotate=True)
 
         with self._playwright_lock:
             try:
@@ -218,17 +210,26 @@ class AntibotClient:
                             "--disable-dev-shm-usage",
                         ],
                     )
+                    ua = profile.user_agent if profile else random.choice(USER_AGENTS)
+                    locale = profile.locale if profile else "pt-PT"
+                    if profile:
+                        viewport = {"width": profile.viewport_width, "height": profile.viewport_height}
+                    else:
+                        viewport = {"width": 1366, "height": 768}
                     context_kwargs: dict = {
-                        "user_agent": random.choice(USER_AGENTS),
-                        "locale": "pt-PT",
-                        "viewport": {"width": 1366, "height": 768},
+                        "user_agent": ua,
+                        "locale": locale,
+                        "viewport": viewport,
                     }
+                    if profile:
+                        context_kwargs["timezone_id"] = profile.timezone_id
                     if pw_proxy:
                         context_kwargs["proxy"] = pw_proxy
                     context = browser.new_context(**context_kwargs)
-                    context.add_init_script(
+                    stealth = playwright_stealth_script(profile) if profile else (
                         "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
                     )
+                    context.add_init_script(stealth)
                     page = context.new_page()
                     page.goto(url, wait_until="domcontentloaded", timeout=60000)
                     page.wait_for_timeout(2500)

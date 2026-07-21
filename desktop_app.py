@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.11."""
+"""Aplicação desktop nativa — Company Email Extractor v2.12."""
 
 from __future__ import annotations
 
@@ -39,6 +39,11 @@ from cnpj_extractor.field_filters import (
     filter_records_by_requirements,
 )
 from cnpj_extractor.gui_text import ADD_SOURCE_HELP, GUIDE_TEXT
+from cnpj_extractor.fingerprint_privacy import (
+    clear_fingerprint_masking,
+    profile_summary,
+    set_fingerprint_masking,
+)
 from cnpj_extractor.proxy_config import (
     clear_active_proxy,
     is_valid_proxy_url,
@@ -73,7 +78,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.11.0"
+APP_VERSION = "2.12.0"
 
 CONNECTION_DIRECT = "Direta (IP normal)"
 CONNECTION_PROXY = "Proxy / VPN (ocultar IP)"
@@ -200,7 +205,8 @@ class CompanyEmailApp(ctk.CTk):
         super().__init__()
         self.title(f"{APP_NAME} v{APP_VERSION}")
         self.geometry("1240x760")
-        self.minsize(1000, 640)
+        self.minsize(880, 520)
+        self.resizable(True, True)
 
         self.records: list[dict] = []
         self._stream_total = 0
@@ -338,7 +344,7 @@ class CompanyEmailApp(ctk.CTk):
         privacy.grid(row=21, column=0, padx=16, pady=(0, 6), sticky="ew")
         ctk.CTkLabel(
             privacy,
-            text="🔒 Privacidade — ligação à internet",
+            text="🔒 Privacidade — ligação e identidade",
             font=ctk.CTkFont(size=12, weight="bold"),
             anchor="w",
         ).pack(fill="x", padx=10, pady=(8, 4))
@@ -369,7 +375,38 @@ class CompanyEmailApp(ctk.CTk):
             justify="left",
             anchor="w",
         )
-        self._proxy_hint.pack(fill="x", padx=10, pady=(0, 8))
+        self._proxy_hint.pack(fill="x", padx=10, pady=(0, 6))
+        self.fingerprint_mask_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            privacy,
+            text="🎭 Ocultar MAC / ID máquina / impressão digital",
+            variable=self.fingerprint_mask_var,
+            command=self._on_fingerprint_mask_change,
+            font=ctk.CTkFont(size=11),
+        ).pack(fill="x", padx=10, pady=(0, 4))
+        self._fingerprint_hint = ctk.CTkLabel(
+            privacy,
+            text=(
+                "Gera valores falsos e aleatórios por sessão (MAC, ID, hostname, "
+                "navegador). Sites não recebem o MAC real — só identificadores HTTP."
+            ),
+            font=ctk.CTkFont(size=10),
+            text_color="gray",
+            wraplength=250,
+            justify="left",
+            anchor="w",
+        )
+        self._fingerprint_hint.pack(fill="x", padx=10, pady=(0, 4))
+        self._fingerprint_summary = ctk.CTkLabel(
+            privacy,
+            text="Desativado — impressão digital normal do sistema.",
+            font=ctk.CTkFont(size=10),
+            text_color="#1a5276",
+            wraplength=250,
+            justify="left",
+            anchor="w",
+        )
+        self._fingerprint_summary.pack(fill="x", padx=10, pady=(0, 8))
 
         paths = ctk.CTkFrame(sidebar, fg_color="transparent")
         paths.grid(row=22, column=0, padx=20, sticky="ew")
@@ -922,6 +959,25 @@ class CompanyEmailApp(ctk.CTk):
                 text="Ligação direta — os sites veem o IP da sua internet.",
             )
 
+    def _on_fingerprint_mask_change(self) -> None:
+        if self.fingerprint_mask_var.get():
+            profile = set_fingerprint_masking(True, rotate_each_request=True)
+            if profile:
+                self._fingerprint_summary.configure(text=profile_summary(profile))
+        else:
+            clear_fingerprint_masking()
+            self._fingerprint_summary.configure(text="Desativado — impressão digital normal do sistema.")
+
+    def _activate_fingerprint_for_extraction(self) -> None:
+        if self.fingerprint_mask_var.get():
+            profile = set_fingerprint_masking(True, rotate_each_request=True)
+            if profile:
+                summary = profile_summary(profile)
+                self.after(0, self._fingerprint_summary.configure, {"text": summary})
+                self.after(0, self._set_status, f"🎭 Impressão digital oculta: {summary}")
+        else:
+            clear_fingerprint_masking()
+
     def _validate_proxy_settings(self) -> bool:
         if self.connection_mode_var.get() != CONNECTION_PROXY:
             return True
@@ -1136,6 +1192,7 @@ class CompanyEmailApp(ctk.CTk):
     def _run_extraction(self) -> None:
         try:
             self._activate_proxy_for_extraction()
+            self._activate_fingerprint_for_extraction()
             country_key, source_key, source = self._resolve_source()
             preview = self._is_preview
             max_text = self.max_var.get().strip()
@@ -1276,6 +1333,7 @@ class CompanyEmailApp(ctk.CTk):
             self.after(0, self._on_extraction_error, str(exc))
         finally:
             clear_active_proxy()
+            clear_fingerprint_masking()
 
     def _ask_scraper_url(self) -> str | None:
         result: list[str | None] = [None]

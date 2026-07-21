@@ -1,8 +1,8 @@
-# Company Email Extractor v2.11 — Guia Completo
+# Company Email Extractor v2.12 — Guia Completo
 
 **Software nativo Windows** para extrair emails e dados de empresas de **19 países** e qualquer site.
 
-- Versão atual: **2.11.0**
+- Versão atual: **2.12.0**
 - Download: https://github.com/tiagosgama90-coder/web_scraping/releases/latest
 - Ficheiro: `CompanyEmailExtractor-Setup.exe`
 
@@ -80,28 +80,36 @@
 33. **Proxy / VPN** — tráfego passa pelo proxy que **você** configurar
 34. O software **não inclui VPN** — só encaminha pelo proxy que indicar
 35. Funciona com HTTP, HTTPS e SOCKS5
+36. **🎭 Ocultar MAC / ID máquina / impressão digital** — gera valores falsos e aleatórios por sessão
+37. Randomiza User-Agent, idioma, fuso horário, resolução e hostname visíveis nos pedidos
+38. **Nota:** sites na internet **não recebem o MAC real** da sua placa — esta opção protege a impressão digital HTTP/browser
 
-### H) Exportação manual
+### H) Janela ajustável
 
-36. **CSV filtrado** — colunas escolhidas
-37. **Emails .txt** — 1 email por linha (ficheiro leve)
-38. **SQLite (.db)** — base de dados completa
-39. **CSV completo** — todas as colunas
-40. **Só emails** — email, empresa, cnpj, uf
-41. **Marketing** — formato Mailchimp/Brevo (com aviso legal LGPD/RGPD)
-42. **Guardar na pasta** — exportação direta sem diálogo
+39. A janela pode ser **redimensionada** (arraste os cantos ou bordas)
+40. Tamanho mínimo reduzido para ecrãs pequenos (880×520)
 
-### I) Validação extra (opcional)
+### I) Exportação manual
 
-43. **Validar domínio DNS/MX** — verifica se o domínio tem servidor de correio
-44. Não verifica se a caixa de correio existe (isso requer serviços pagos)
+41. **CSV filtrado** — colunas escolhidas
+42. **Emails .txt** — 1 email por linha (ficheiro leve)
+43. **SQLite (.db)** — base de dados completa
+44. **CSV completo** — todas as colunas
+45. **Só emails** — email, empresa, cnpj, uf
+46. **Marketing** — formato Mailchimp/Brevo (com aviso legal LGPD/RGPD)
+47. **Guardar na pasta** — exportação direta sem diálogo
 
-### J) O que o programa NÃO faz
+### J) Validação extra (opcional)
 
-45. **Não envia emails** — só extrai e exporta
-46. **Não recolhe os seus dados** — corre 100% no seu PC
-47. **Não inclui VPN gratuita** — proxy é opcional e externo
-48. **Não garante** que todos os sites permitem extração (alguns bloqueiam)
+48. **Validar domínio DNS/MX** — verifica se o domínio tem servidor de correio
+49. Não verifica se a caixa de correio existe (isso requer serviços pagos)
+
+### K) O que o programa NÃO faz
+
+50. **Não envia emails** — só extrai e exporta
+51. **Não recolhe os seus dados** — corre 100% no seu PC
+52. **Não inclui VPN gratuita** — proxy é opcional e externo
+53. **Não garante** que todos os sites permitem extração (alguns bloqueiam)
 
 ---
 
@@ -194,6 +202,8 @@ Documentos\CompanyEmailExtractor\
 | **SQLite em tempo real** | Base de dados durante extração |
 | **Anti-Bot** | Playwright + Cloudflare |
 | **Privacidade — ligação** | **Direta** ou **Proxy/VPN** (sua escolha) |
+| **🎭 Ocultar impressão digital** | MAC/ID/hostname falsos + browser aleatório |
+| **Janela** | Redimensionável — arraste os cantos |
 | **🔍 Pré-visualizar** | Amostra na tabela sem gravar |
 | **▶ Iniciar Extração** | Extração completa + gravação |
 | **⏹ Parar** | Para e mantém o que já foi gravado |
@@ -337,4 +347,4 @@ C:\Users\SeuNome\AppData\Local\CompanyEmailExtractor\custom_sources.json
 
 ---
 
-*Company Email Extractor v2.11.0 — Guia do utilizador*
+*Company Email Extractor v2.12.0 — Guia do utilizador*

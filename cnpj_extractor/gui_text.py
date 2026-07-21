@@ -77,10 +77,16 @@ PASSO 4 — MODO DE EXTRAÇÃO
 
 PASSO 5 — PRIVACIDADE (SUA ESCOLHA)
 ------------------------------------
-Na secção «🔒 Privacidade — ligação à internet»:
+Na secção «🔒 Privacidade — ligação e identidade»:
 
   • Direta (IP normal) — ligação normal, predefinição
   • Proxy / VPN (ocultar IP) — tráfego pela VPN que VOCÊ configurar
+  • 🎭 Ocultar MAC / ID máquina / impressão digital — gera valores
+    falsos e aleatórios (MAC, ID, hostname, navegador) por sessão
+
+IMPORTANTE sobre MAC: sites na internet NÃO recebem o MAC da sua placa
+de rede. Esta opção randomiza a impressão digital visível nos pedidos
+HTTP e no browser (User-Agent, idioma, resolução, etc.).
 
 IMPORTANTE: O software NÃO inclui VPN gratuita.
   1. Instale uma VPN à parte (NordVPN, Mullvad, ProtonVPN…)
@@ -89,6 +95,12 @@ IMPORTANTE: O software NÃO inclui VPN gratuita.
 
 VPN gratuitas existem (ProtonVPN free) mas com limites.
 VPNs pagas são mais fiáveis para uso regular.
+
+
+PASSO 5b — JANELA AJUSTÁVEL
+-----------------------------
+A janela do programa pode ser redimensionada (arraste os cantos).
+Reduza ou aumente o tamanho conforme o seu ecrã.
 
 
 PASSO 6 — FILTROS E CAMPOS
