@@ -75,19 +75,23 @@ PASSO 4 — MODO DE EXTRAÇÃO
   • Automático = extração completa (pode demorar horas)
 
 
-PASSO 5 — HIDE MY IP (INTEGRADO — NÃO PRECISA INSTALAR NADA)
--------------------------------------------------------------
-Igual à extensão Hide My IP do Chrome, mas DENTRO do software:
+PASSO 5 — PAINEL HUD + HIDE MY IP
+----------------------------------
+No separador «Extrair» ha um PAINEL ESCURO com letras AZUIS
+(estilo radio de carro) — o HUD de privacidade:
 
-  • «Ocultar IP (ativado)» — vem LIGADO por defeito
-  • O software esconde o seu IP automaticamente
-  • NÃO precisa instalar VPN, extensão Chrome nem outro programa
-  • Ao abrir o programa, prepara o IP oculto em segundo plano
-  • «Ocultar MAC / ID máquina» — também vem ativo por defeito
+  • IP REAL — o seu IP com pais/cidade
+  • HIDE IP [ON] — protecao ativa
+  • IP SITES — o IP que os sites veem
+  • STATUS — IP OCULTO — OK quando funciona
+  • BROWSER / IDIOMA — impressao digital randomizada
 
-Para DESATIVAR: desmarque «Ocultar IP» na barra lateral.
+Aguarde SYS: READY antes de extrair.
 
-Opções avançadas (proxy manual) — só para utilizadores experientes.
+Na barra lateral:
+  • Ocultar IP (ativado por defeito)
+  • Randomizar impressao digital do browser
+  • Botao «Atualizar HUD»
 
 
 PASSO 5b — JANELA AJUSTÁVEL

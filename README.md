@@ -1,4 +1,4 @@
-# Company Email Extractor v2.14
+# Company Email Extractor v2.15
 
 Software **nativo Windows** para extrair emails e dados de empresas de **19 países**.
 
@@ -11,6 +11,7 @@ Software **nativo Windows** para extrair emails e dados de empresas de **19 paí
 - Extrai emails de **Brasil** (Receita Federal), **Portugal** (FIZ), **16 países** com diretórios e sites personalizados
 - **Pré-visualização** — vê emails no ecrã antes de gravar
 - Grava **CSV**, **TXT**, **SQLite** enquanto extrai
+- **Painel HUD** — rádio digital com IP real, IP oculto, país e estado (separador Extrair)
 - **Hide My IP integrado** — oculta IP por defeito, sem instalar VPN nem extensão Chrome
 - Janela **redimensionável** — ajuste ao seu ecrã
 - Anti-bot, filtros por setor, UF por UF (Brasil), 1000 linhas/ficheiro para Excel

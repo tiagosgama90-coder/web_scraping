@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.14 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.15 — LEIA-ME
 ================================================================================
 
 DOWNLOAD
@@ -12,65 +12,45 @@ INSTALACAO
 1. Execute CompanyEmailExtractor-Setup.exe
 2. Seguinte -> Instalar -> Concluir
 3. Abra pelo Menu Iniciar
-4. NAO precisa instalar VPN nem extensao Chrome — Hide My IP ja vem dentro
 
 ================================================================================
-  HIDE MY IP — INTEGRADO (IGUAL EXTENSAO CHROME)
+  PAINEL HUD — RADIO DIGITAL (NOVO v2.15)
+================================================================================
+
+No separador «Extrair» aparece um painel ESCURO com letras AZUIS
+(estilo radio de carro) que mostra ANTES de extrair:
+
+  • SEU IP REAL (com pais/cidade)
+  • HIDE MY IP: [ON] ou [OFF]
+  • IP VISTO PELOS SITES (com pais)
+  • STATUS: IP OCULTO — OK (quando funciona)
+  • BROWSER / IDIOMA / impressao digital
+
+Aguarde SYS: READY antes de clicar Iniciar Extracao.
+
+Botao «Atualizar HUD» na barra lateral para refrescar.
+
+================================================================================
+  HIDE MY IP — INTEGRADO
 ================================================================================
 
   • Vem LIGADO por defeito
-  • Marque/desmarque «Ocultar IP» na barra lateral
-  • O software esconde o IP sozinho — zero configuracao
-  • Tambem oculta MAC / ID maquina / impressao digital
-  • Ao abrir, prepara IP oculto em segundo plano
-
-  NAO PRECISA:
-    x Instalar VPN (NordVPN, ProtonVPN...)
-    x Instalar extensao Hide My IP no Chrome
-    x Colar enderecos de proxy
-
-================================================================================
-  TUDO O QUE O PROGRAMA FAZ (RESUMO)
-================================================================================
-
-EXTRACAO
-  1. Extrai emails e dados de empresas (19 paises + sites)
-  2. Brasil: Receita Federal (~67M empresas, dados oficiais)
-  3. Portugal: FIZ (~490k empresas)
-  4. 16 paises com diretorios empresariais
-  5. Sites personalizados (URL, sitemap, lista de links)
-
-PRIVACIDADE INTEGRADA
-  6. Hide My IP — ocultar IP (ativado por defeito)
-  7. Ocultar MAC / ID maquina / impressao digital
-  8. Tudo dentro do software — nada para instalar a parte
-
-PRE-VISUALIZAR
-  9. Ve emails no ecra ANTES de gravar ficheiros
-  10. Botao "Pre-visualizar" (amostra, ex: 25)
-
-GRAVACAO
-  11. Grava CSV, TXT e SQLite ENQUANTO extrai
-  12. Ficheiros de 1000 linhas (abre no Excel)
-
-ANTI-BOT
-  13. Contorna Cloudflare e protecoes (Playwright)
-
-EXPORTACAO
-  14. CSV filtrado, emails .txt, SQLite, marketing
-  15. NAO envia emails — so extrai e exporta
+  • NAO precisa instalar VPN nem extensao Chrome
+  • Randomiza browser/idioma/resolucao
+  • MAC da placa NUNCA vai a internet (so IP muda)
 
 ================================================================================
   INICIO RAPIDO
 ================================================================================
 
-1. Abra o programa (Hide My IP ja vem ligado)
-2. Pais: PT | Fonte: FIZ | Limite: 50
-3. Pre-visualizar (25) -> ver emails
-4. Iniciar Extracao
-5. Ficheiros em: Documentos\CompanyEmailExtractor\export\
+1. Abra o programa
+2. Va ao separador «Extrair» — veja o HUD (aguarde READY)
+3. Pais: PT | Fonte: FIZ | Limite: 50
+4. Pre-visualizar (25) -> ver emails
+5. Iniciar Extracao
+6. Ficheiros em: Documentos\CompanyEmailExtractor\export\
 
-GUIA COMPLETO: COMO_USAR.md (nesta pasta apos instalar)
+GUIA COMPLETO: COMO_USAR.md
 CODIGO: https://github.com/tiagosgama90-coder/web_scraping
 
 AVISO: Use em conformidade com LGPD/RGPD. Nao faca spam.
