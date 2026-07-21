@@ -12,6 +12,7 @@ from cnpj_extractor.antibot import AntibotClient
 from cnpj_extractor.models import CompanyEmail
 from cnpj_extractor.sitemap import discover_sitemap_urls, fetch_all_company_urls, parse_urlset
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
+from cnpj_extractor.sector_filters import matches_sector
 from cnpj_extractor.utils import is_valid_email, normalize_email
 
 CORPORATION_TYPES = {"Corporation", "LocalBusiness", "Organization"}
@@ -108,6 +109,7 @@ class GenericSitemapSource(BaseSource):
         aggressive_antibot: bool = True,
         only_with_email: bool = True,
         max_records: int | None = 500,
+        sector_filter: str | None = None,
         progress_callback: ProgressCallback = None,
     ) -> Iterator[CompanyEmail]:
         self.aggressive_antibot = aggressive_antibot
@@ -166,6 +168,8 @@ class GenericSitemapSource(BaseSource):
             for future in as_completed(futures):
                 completed += 1
                 record = future.result()
+                if record and sector_filter and not matches_sector(record.cnae, sector_filter):
+                    record = None
                 if record:
                     key = (record.cnpj or record.email, record.email)
                     if key not in seen:

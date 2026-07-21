@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.6 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.7 — LEIA-ME
 ================================================================================
 
 INSTALACAO
@@ -16,23 +16,44 @@ O QUE FAZ
 ---------
 - Extrai emails de empresas (Brasil, Portugal, qualquer site)
 - Limpa emails invalidos, duplicados e lixo (noreply, etc.)
-- Grava CSV, TXT e SQLite ENQUANTO extrai (nao espera pelo fim)
+- Filtra por SETOR: CNAE (BR), CAE/ISIC (PT), codigos internacionais
+- Grava CSV, TXT e SQLite ENQUANTO extrai
 - Divide em ficheiros de 1000 linhas (abre no Excel)
 - Brasil: extrai UF por UF (SP, RJ, MG...) em pastas separadas
+
+FILTRO POR SETOR (NOVO v2.7)
+----------------------------
+Campo "CNAE / CAE / ISIC" na barra lateral:
+
+  Brasil:   6202300  ou  62  (tecnologia/TI)
+  Portugal: 6201     ou  62  (programacao informatica)
+  Varios:   62, 47, 86  (separados por virgula)
+
+  Prefixo funciona: 62 inclui 6201, 6202, 6202300...
+
+  Combina com UF ou distrito:
+    SP + 62 = empresas de TI em Sao Paulo
+    Lisboa + 62 = empresas de TI em Lisboa
+
+CODIGOS COMUNS
+--------------
+  62 = Tecnologia / TI        47 = Comercio
+  86 = Saude                  41 = Construcao
+  56 = Restauracao            85 = Educacao
 
 INICIO RAPIDO
 -------------
 1. Abra o programa
-2. Escolha Pais e Fonte na barra lateral
+2. Escolha Pais, Fonte e Setor (opcional) na barra lateral
 3. Clique "Iniciar Extracao"
 4. Resultados em: Documentos\CompanyEmailExtractor\export\
 
 BRASIL (MILHOES DE EMAILS)
 --------------------------
 - Pais: BR | Fonte: Receita Federal | UF: Todos
-- Ative: Extrair UF por UF, Gravar enquanto extrai, SQLite em tempo real
+- CNAE: 62 (opcional - so tecnologia)
+- Ative: Extrair UF por UF, Gravar enquanto extrai, SQLite
 - Modo: automatico | Limite: 0
-- Coloque ZIPs Estabelecimentos0-9.zip na pasta downloads
 
 FORMATOS GRAVADOS
 -----------------
@@ -40,22 +61,26 @@ FORMATOS GRAVADOS
   emails_0001.txt  -> 1 email por linha (ficheiro leve)
   empresas.db      -> Base de dados SQLite (milhoes de linhas)
 
+CANCELAR / DISCO CHEIO
+----------------------
+- Clicar Parar: mantem o que ja foi gravado
+- UF ja concluidas ficam completas na pasta export
+- Liberte 10-20 GB antes de extracoes grandes
+
 ABRIR FICHEIROS
 ---------------
-  .csv  -> Duplo clique (abre no Excel)
+  .csv  -> Excel
   .txt  -> Bloco de notas
   .db   -> DB Browser for SQLite (https://sqlitebrowser.org/)
-          O programa CRIA o .db mas NAO o abre sozinho.
 
 GUIA COMPLETO
 -------------
-Leia COMO_USAR.md nesta mesma pasta (ou na instalacao).
+Leia COMO_USAR.md nesta mesma pasta.
 
 SUPORTE / CODIGO
 ----------------
 https://github.com/tiagosgama90-coder/web_scraping
 
-AVISO LEGAL: Use em conformidade com LGPD/RGPD. Nao envie emails
-em massa sem consentimento.
+AVISO LEGAL: Use em conformidade com LGPD/RGPD.
 
 ================================================================================

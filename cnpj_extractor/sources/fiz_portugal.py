@@ -13,6 +13,7 @@ from cnpj_extractor.antibot import AntibotClient
 from cnpj_extractor.models import CompanyEmail
 from cnpj_extractor.sitemap import discover_sitemap_urls, fetch_all_company_urls, parse_urlset
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
+from cnpj_extractor.sector_filters import matches_sector
 from cnpj_extractor.utils import is_valid_email, normalize_email
 
 FIZ_SITEMAP_INDEX = "https://diretorio.fiz.co/sitemap.xml"
@@ -133,6 +134,7 @@ class FizPortugalSource(BaseSource):
         max_records: int | None,
         only_with_email: bool,
         progress_callback: ProgressCallback,
+        sector_filter: str | None = None,
     ) -> Iterator[CompanyEmail]:
         seen: set[tuple[str, str]] = set()
         found = 0
@@ -159,6 +161,9 @@ class FizPortugalSource(BaseSource):
             for future in as_completed(futures):
                 completed += 1
                 record = future.result()
+                if record:
+                    if sector_filter and not matches_sector(record.cnae, sector_filter):
+                        record = None
                 if record:
                     key = (record.cnpj, record.email)
                     if key not in seen:
@@ -187,6 +192,7 @@ class FizPortugalSource(BaseSource):
         max_sitemap_pages: int | None = None,
         aggressive_antibot: bool = True,
         distrito: str | None = None,
+        sector_filter: str | None = None,
         only_with_email: bool = True,
         max_records: int | None = 500,
         progress_callback: ProgressCallback = None,
@@ -243,4 +249,5 @@ class FizPortugalSource(BaseSource):
             progress_callback=lambda value, msg: self._report(
                 progress_callback, 0.3 + value * 0.7, msg
             ),
+            sector_filter=sector_filter,
         )

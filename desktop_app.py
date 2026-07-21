@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.6."""
+"""Aplicação desktop nativa — Company Email Extractor v2.7."""
 
 from __future__ import annotations
 
@@ -38,7 +38,13 @@ from cnpj_extractor.field_filters import (
     DEFAULT_FIELD_KEYS,
     filter_records_by_requirements,
 )
-from cnpj_extractor.gui_text import ADD_SOURCE_HELP, GUIDE_TEXT
+from cnpj_extractor.sector_filters import (
+    get_sector_hint,
+    get_sector_label,
+    get_sector_placeholder,
+    matches_sector,
+    parse_sector_filters,
+)
 from cnpj_extractor.sources import COUNTRIES
 from cnpj_extractor.sources.custom_adapter import CustomSourceAdapter
 from cnpj_extractor.sources.fiz_portugal import FIZ_SITEMAP_INDEX
@@ -52,7 +58,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.6.0"
+APP_VERSION = "2.7.0"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -559,6 +565,9 @@ class CompanyEmailApp(ctk.CTk):
 
     def _on_country_change(self, _=None) -> None:
         country = self.country_var.get()
+        saved_sector = ""
+        if getattr(self, "sector_var", None):
+            saved_sector = self.sector_var.get()
         for w in self.filter_frame.winfo_children():
             w.destroy()
 
@@ -606,9 +615,59 @@ class CompanyEmailApp(ctk.CTk):
             self.distrito_var = ctk.StringVar()
             ctk.CTkEntry(self.filter_frame, textvariable=self.distrito_var, placeholder_text="Ex: Lisboa", width=260).pack(fill="x", pady=4)
 
+        self._build_sector_filter_ui(country, saved_sector)
+
         flags = {"PT": "🇵🇹 Portugal", "BR": "🇧🇷 Brasil", "OUTRO": "🌍 Outro"}
         self.stat_country.configure(text=flags.get(country, country))
         self._rebuild_source_menu()
+
+    def _build_sector_filter_ui(self, country: str, value: str = "") -> None:
+        ctk.CTkLabel(
+            self.filter_frame,
+            text=f"🏭 {get_sector_label(country)}",
+            anchor="w",
+            font=ctk.CTkFont(size=12, weight="bold"),
+        ).pack(fill="x", pady=(10, 0))
+        self.sector_var = ctk.StringVar(value=value)
+        ctk.CTkEntry(
+            self.filter_frame,
+            textvariable=self.sector_var,
+            placeholder_text=get_sector_placeholder(country),
+            width=260,
+        ).pack(fill="x", pady=4)
+        ctk.CTkLabel(
+            self.filter_frame,
+            text=get_sector_hint(country).split("\n")[0],
+            font=ctk.CTkFont(size=11),
+            text_color="gray",
+            anchor="w",
+            wraplength=250,
+        ).pack(fill="x")
+        ctk.CTkLabel(
+            self.filter_frame,
+            text="Vários códigos: 62, 47, 86 (prefixo ou completo)",
+            font=ctk.CTkFont(size=10),
+            text_color="gray",
+            anchor="w",
+            wraplength=250,
+        ).pack(fill="x", pady=(0, 4))
+
+    def _get_sector_filter(self) -> str:
+        var = getattr(self, "sector_var", None)
+        return var.get().strip() if var else ""
+
+    def _record_passes_sector(self, row: dict) -> bool:
+        sector = self._get_sector_filter()
+        if not sector:
+            return True
+        return matches_sector(row.get("cnae", ""), sector)
+
+    def _sector_folder_suffix(self) -> str:
+        codes = parse_sector_filters(self._get_sector_filter())
+        if not codes:
+            return ""
+        label = "_".join(codes[:2])
+        return f"_setor_{label}"[:32]
 
     def _quick_start(self) -> None:
         self.country_var.set("PT")
@@ -700,16 +759,18 @@ class CompanyEmailApp(ctk.CTk):
         antibot: bool,
         auto: bool,
         progress_callback,
-    ) -> dict:
+        ) -> dict:
         kwargs: dict = {
             "max_records": max_records,
             "only_with_email": only_email,
             "progress_callback": progress_callback,
             "aggressive_antibot": antibot,
         }
+        sector = self._get_sector_filter() or None
         if source_key.startswith("custom:"):
             kwargs["auto_discover"] = auto
             kwargs["max_sitemap_pages"] = None if auto else 1
+            kwargs["sector_filter"] = sector
         elif source_key == "scraper":
             url = self._ask_scraper_url()
             if not url:
@@ -723,9 +784,11 @@ class CompanyEmailApp(ctk.CTk):
                 "load_razao_social": getattr(self, "load_razao_var", ctk.BooleanVar(value=False)).get(),
                 "use_local_zips_only": getattr(self, "use_local_zips_var", ctk.BooleanVar(value=False)).get(),
                 "data_dir": self._get_data_dir(),
+                "cnae_filter": sector,
             })
         elif source_key == "dadosbrasil_api":
             kwargs["uf"] = uf_code
+            kwargs["cnae"] = sector
         elif source_key == "fiz_portugal":
             dist = getattr(self, "distrito_var", None)
             kwargs.update({
@@ -733,6 +796,7 @@ class CompanyEmailApp(ctk.CTk):
                 "max_sitemap_pages": None if auto else 1,
                 "distrito": dist.get().strip() if dist and dist.get().strip() else None,
                 "aggressive_antibot": antibot,
+                "sector_filter": sector,
             })
         elif source_key == "sitemap_generico":
             url = self._ask_scraper_url() or FIZ_SITEMAP_INDEX
@@ -740,6 +804,7 @@ class CompanyEmailApp(ctk.CTk):
                 "sitemap_url": url,
                 "auto_discover": auto,
                 "include_all_sitemaps": True,
+                "sector_filter": sector,
             })
         elif source_key == "website_scraper":
             url = self._ask_scraper_url()
@@ -775,8 +840,11 @@ class CompanyEmailApp(ctk.CTk):
                     if self._stop_requested:
                         break
                     uf_label = f"UF {uf_code}" if uf_code else "todos"
+                    if self._get_sector_filter():
+                        uf_label += f" | setor {self._get_sector_filter()}"
                     self.after(0, self._set_status, f"A extrair {uf_label}...")
-                    base_name = f"UF_{uf_code}" if uf_code else "dados"
+                    suffix = self._sector_folder_suffix()
+                    base_name = (f"UF_{uf_code}{suffix}" if uf_code else f"dados{suffix}")
                     try:
                         kwargs = self._build_extract_kwargs(
                             source_key, country_key,
@@ -811,6 +879,8 @@ class CompanyEmailApp(ctk.CTk):
                         if self._stop_requested:
                             break
                         row = self._normalize_record(record, country_key)
+                        if not self._record_passes_sector(row):
+                            continue
                         if exporter.add(row):
                             self._stream_total += 1
                             ui_records.append(row)
@@ -849,7 +919,10 @@ class CompanyEmailApp(ctk.CTk):
                 for record in source.extract(**kwargs):
                     if self._stop_requested:
                         break
-                    new_records.append(self._normalize_record(record, country_key))
+                    row = self._normalize_record(record, country_key)
+                    if not self._record_passes_sector(row):
+                        continue
+                    new_records.append(row)
                     if len(new_records) % 10 == 0:
                         self.after(0, lambda n=len(new_records): self._set_status(f"{n:,} registos..."))
 

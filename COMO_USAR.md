@@ -1,10 +1,11 @@
-# Company Email Extractor v2.6 — Guia Completo
+# Company Email Extractor v2.7 — Guia Completo
 
 **Software nativo Windows** para extrair emails e dados de empresas do Brasil, Portugal e qualquer site.
 
 - Janela própria — **sem browser**, sem terminal, sem instalar Python
 - Grava ficheiros **enquanto extrai** — ideal para milhões de registos
-- Versão atual: **2.6.0**
+- Filtra por **setor de atividade** (CNAE / CAE / ISIC)
+- Versão atual: **2.7.0**
 
 ---
 
@@ -56,9 +57,38 @@ O programa **limpa sempre** os emails extraídos:
 - Obrigatório ter **email**, **telefone** ou **CNPJ/NIPC**
 - Brasil: filtro por **UF**, apenas empresas **ativas**
 - Portugal: filtro por **distrito**
+- **Setor de atividade** (CNAE / CAE / ISIC) — todos os países
 - Escolha de **campos a exportar** (email, empresa, cnpj, telefone, uf, municipio, etc.)
 
-### Gravação em tempo real (v2.6)
+### Filtro por setor (v2.7) — CNAE / CAE / ISIC
+
+Filtra empresas por código de atividade económica:
+
+| País | Código | Exemplo |
+|------|--------|---------|
+| 🇧🇷 Brasil | **CNAE** | `6202300` = desenvolvimento de software |
+| 🇵🇹 Portugal | **CAE / ISIC** | `6201` = programação informática |
+| 🌍 Outros | **ISIC** | `47` = comércio, `86` = saúde |
+
+**Como usar:**
+- Campo **🏭 CNAE/CAE** na barra lateral (muda conforme o país)
+- Vários códigos separados por vírgula: `62, 47, 86`
+- **Prefixo funciona:** `62` inclui `6201`, `6202`, `6202300`…
+- Combina com UF/distrito: ex. SP + setor 62 = empresas de TI em São Paulo
+
+**Códigos comuns:**
+
+| Código | Setor |
+|--------|-------|
+| `62` | Tecnologia / TI / Software |
+| `47` | Comércio retalhista |
+| `86` | Saúde |
+| `41` | Construção |
+| `56` | Restauração / catering |
+| `85` | Educação |
+| `68` | Imobiliário |
+
+### Gravação em tempo real (v2.6+)
 
 - Grava **CSV**, **TXT** e **SQLite** enquanto extrai — não espera pelo fim
 - Divide em ficheiros de **1000 linhas** (configurável) — cada um abre no Excel
@@ -145,6 +175,15 @@ Instala Python portátil na pasta do projeto — não mexe no sistema.
 | **Carregar razão social** | Nome completo (requer ZIPs Empresas*.zip) |
 | **Usar ZIPs já descarregados** | Usa ficheiros na pasta de downloads |
 | **Limpar ZIPs corrompidos** | Apaga ZIPs inválidos para re-download |
+| **CNAE (setor)** | Ex: `6202300` ou `62` (só empresas desse setor) |
+
+### Filtro setor — todos os países
+
+Aparece abaixo dos filtros de país. Etiqueta muda automaticamente:
+
+- **BR:** CNAE (setor de atividade)
+- **PT:** CAE / ISIC (setor)
+- **OUTRO:** Código setor internacional
 
 ### Botões de exportação (separador Extrair)
 
@@ -220,6 +259,22 @@ O programa **cria** ficheiros `.db` mas **não os abre**.
 4. Modo: **limitado**, Limite: **50**
 5. Clica **▶ Iniciar Extração**
 6. Vê os ficheiros em `Documentos\CompanyEmailExtractor\export\`
+
+### Brasil — TI em São Paulo (CNAE + UF)
+
+1. País: **BR** → Fonte: **Receita Federal**
+2. UF: **SP**
+3. CNAE: **62** (ou `6202300`)
+4. Modo: **limitado**, Limite: **500** (teste)
+5. **▶ Iniciar**
+
+### Portugal — TI em Lisboa (CAE + distrito)
+
+1. País: **PT** → Fonte: **FIZ**
+2. Distrito: **Lisboa**
+3. CAE/ISIC: **62**
+4. Limite: **100**
+5. **▶ Iniciar**
 
 ### Brasil — um estado 🇧🇷
 
@@ -432,4 +487,4 @@ C:\Users\TeuNome\AppData\Local\Programs\Company Email Extractor\
 
 ---
 
-*Company Email Extractor v2.6.0 — Guia do utilizador*
+*Company Email Extractor v2.7.0 — Guia do utilizador*
