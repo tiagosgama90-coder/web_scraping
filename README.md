@@ -1,4 +1,4 @@
-# Company Email Extractor v2.11
+# Company Email Extractor v2.12
 
 Software **nativo Windows** para extrair emails e dados de empresas de **19 países**.
 
