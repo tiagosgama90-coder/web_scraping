@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 title Company Email Extractor - Criar Setup.exe
-cd /d "%~dp0"
+cd /d "%~dp0\.."
 
 echo.
 echo  A gerar executavel...

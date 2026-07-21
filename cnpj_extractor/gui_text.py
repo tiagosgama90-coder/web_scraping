@@ -59,12 +59,35 @@ PASSO 4 — MODO DE EXTRAÇÃO
   • Automático = extração completa (pode demorar horas)
 
 
-PASSO 5 — INICIAR E EXPORTAR
+PASSO 5 — FILTROS E CAMPOS
+---------------------------
+Na barra lateral pode escolher:
+  • Campos a exportar (email, empresa, cnpj, telefone, uf, etc.)
+  • Obrigatório ter e-mail / telefone / CNPJ
+  • Validar domínio DNS/MX (verifica se o domínio tem servidor de email)
+  • Guardar CSV filtrado automaticamente ao concluir
+
+
+PASSO 6 — INICIAR E EXPORTAR
 -----------------------------
   1. Clique "▶ Iniciar Extração"
   2. Veja os resultados na tabela
-  3. Exporte para SQLite (.db) ou CSV
-  4. Abra o .db no DB Browser for SQLite
+  3. O CSV filtrado é guardado na pasta de exportação (se ativo)
+  4. Ou use: CSV filtrado | Guardar na pasta | Só emails | Marketing
+
+
+ADICIONAR NOVO SITE RAPIDAMENTE
+--------------------------------
+  • Separador "Minhas Fontes" → cole o URL → "Adicionar e usar"
+  • Usa anti-bot automaticamente com as mesmas configurações
+  • Ou "+ Adicionar Fonte" para opções avançadas (sitemap, lista URLs)
+
+
+INSTALACAO WINDOWS (SETUP.EXE)
+-------------------------------
+  • Execute installer\build_setup.bat para criar CompanyEmailExtractor-Setup.exe
+  • Ou descarregue do GitHub Actions (artifact CompanyEmailExtractor-Installer)
+  • Alternativa: INSTALAR.bat (Python portátil, sem instalar no sistema)
 
 
 EXEMPLOS RÁPIDOS

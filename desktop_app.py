@@ -195,7 +195,7 @@ class CompanyEmailApp(ctk.CTk):
         # Sidebar
         sidebar = ctk.CTkFrame(self, width=300, corner_radius=0)
         sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_rowconfigure(16, weight=1)
+        sidebar.grid_rowconfigure(18, weight=1)
 
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
@@ -240,22 +240,33 @@ class CompanyEmailApp(ctk.CTk):
         ctk.CTkCheckBox(sidebar, text="Obrigatório ter telefone", variable=self.require_phone_var).grid(
             row=13, column=0, padx=20, pady=2, sticky="w"
         )
+        self.require_cnpj_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(sidebar, text="Obrigatório ter CNPJ/NIPC", variable=self.require_cnpj_var).grid(
+            row=14, column=0, padx=20, pady=2, sticky="w"
+        )
         self.mx_validate_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(
             sidebar,
             text="🌐 Validar domínio DNS/MX",
             variable=self.mx_validate_var,
-        ).grid(row=14, column=0, padx=20, pady=2, sticky="w")
+        ).grid(row=15, column=0, padx=20, pady=2, sticky="w")
+
+        self.auto_export_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            sidebar,
+            text="📥 Guardar CSV filtrado ao concluir",
+            variable=self.auto_export_var,
+        ).grid(row=16, column=0, padx=20, pady=2, sticky="w")
 
         self.antibot_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             sidebar,
             text="🛡 Anti-Bot (Playwright + Cloudflare)",
             variable=self.antibot_var,
-        ).grid(row=15, column=0, padx=20, pady=6, sticky="w")
+        ).grid(row=17, column=0, padx=20, pady=6, sticky="w")
 
         paths = ctk.CTkFrame(sidebar, fg_color="transparent")
-        paths.grid(row=16, column=0, padx=20, sticky="ew")
+        paths.grid(row=18, column=0, padx=20, sticky="ew")
         ctk.CTkLabel(paths, text="Pasta de downloads (BR/RFB)", anchor="w").pack(fill="x")
         self.data_dir_var = ctk.StringVar(value=str(DEFAULT_DATA_DIR))
         data_row = ctk.CTkFrame(paths, fg_color="transparent")
@@ -273,14 +284,14 @@ class CompanyEmailApp(ctk.CTk):
         self.start_btn = ctk.CTkButton(sidebar, text="▶  Iniciar Extração", height=44,
                                        font=ctk.CTkFont(size=15, weight="bold"),
                                        command=self._start_extraction)
-        self.start_btn.grid(row=17, column=0, padx=20, pady=(10, 4), sticky="ew")
+        self.start_btn.grid(row=19, column=0, padx=20, pady=(10, 4), sticky="ew")
 
         self.stop_btn = ctk.CTkButton(sidebar, text="⏹  Parar", height=36, fg_color="#c0392b",
                                      hover_color="#962d22", command=self._stop_extraction, state="disabled")
-        self.stop_btn.grid(row=18, column=0, padx=20, pady=(4, 12), sticky="ew")
+        self.stop_btn.grid(row=20, column=0, padx=20, pady=(4, 12), sticky="ew")
 
         ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=19, column=0, padx=20, pady=(0, 16), sticky="ew")
+                      command=lambda: self.tabview.set("📖 Guia")).grid(row=21, column=0, padx=20, pady=(0, 16), sticky="ew")
 
         # Main tabs
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
@@ -340,6 +351,8 @@ class CompanyEmailApp(ctk.CTk):
         exp.grid(row=3, column=0, sticky="ew", padx=12, pady=(4, 12))
         ctk.CTkButton(exp, text="📥 CSV filtrado", command=self._export_filtered, width=120,
                       fg_color="#1a5276", hover_color="#154360").pack(side="left", padx=(0, 6))
+        ctk.CTkButton(exp, text="📂 Guardar na pasta", command=self._export_to_folder, width=130,
+                      fg_color="#117a65", hover_color="#0e6251").pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="💾 SQLite (.db)", command=self._export_sqlite, width=120).pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📄 CSV completo", command=self._export_csv, width=120).pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📧 Só emails", command=self._export_emails_only, width=110,
@@ -691,6 +704,7 @@ class CompanyEmailApp(ctk.CTk):
                 cleaned,
                 require_email=self.only_email_var.get(),
                 require_phone=self.require_phone_var.get(),
+                require_cnpj=self.require_cnpj_var.get(),
             )
             self.records = dedupe_by_email(cleaned) if only_email else dedupe_records(cleaned)
             self._selected_export_fields = self._get_selected_fields()
@@ -734,8 +748,17 @@ class CompanyEmailApp(ctk.CTk):
         self.progress.set(1.0)
         msg = f"Extração concluída: {len(self.records):,} registos"
         self._set_status(msg, 1.0)
+        saved_path = None
+        if self.records and self.auto_export_var.get():
+            saved_path = self._export_to_folder(silent=True)
         if self.records:
-            messagebox.showinfo(APP_NAME, msg)
+            if saved_path:
+                messagebox.showinfo(
+                    APP_NAME,
+                    f"{msg}\n\nCSV filtrado guardado em:\n{saved_path}",
+                )
+            else:
+                messagebox.showinfo(APP_NAME, msg)
 
     def _on_extraction_error(self, error: str) -> None:
         self._extracting = False
@@ -815,6 +838,22 @@ class CompanyEmailApp(ctk.CTk):
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         country = self.country_var.get().lower()
         return str(export_dir / f"empresas_{country}_{stamp}.{extension}")
+
+    def _export_to_folder(self, *, silent: bool = False) -> str | None:
+        if not self.records:
+            if not silent:
+                messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
+            return None
+        fields = self._get_selected_fields()
+        path = self._get_export_dir() / (Path(self._default_export_path("csv")).stem + "_filtrado.csv")
+        export_filtered_csv(self.records, path, selected_fields=fields, unique_emails=True)
+        if not silent:
+            messagebox.showinfo(
+                APP_NAME,
+                f"CSV filtrado guardado na pasta de exportação:\n\n{path}\n\n"
+                f"Colunas: {', '.join(fields)}",
+            )
+        return str(path)
 
     def _export_filtered(self) -> None:
         if not self.records:
