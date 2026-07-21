@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.17.0."""
+"""Aplicação desktop nativa — Company Email Extractor v2.18.0."""
 
 from __future__ import annotations
 
@@ -88,7 +88,7 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.17.0"
+APP_VERSION = "2.18.0"
 
 TAB_EXTRACT = "Extrair"
 TAB_SOURCES = "Fontes"
