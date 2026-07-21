@@ -1,8 +1,8 @@
-# Company Email Extractor v2.12 — Guia Completo
+# Company Email Extractor v2.13 — Guia Completo
 
 **Software nativo Windows** para extrair emails e dados de empresas de **19 países** e qualquer site.
 
-- Versão atual: **2.12.0**
+- Versão atual: **2.13.0**
 - Download: https://github.com/tiagosgama90-coder/web_scraping/releases/latest
 - Ficheiro: `CompanyEmailExtractor-Setup.exe`
 
@@ -77,12 +77,11 @@
 ### G) Privacidade — escolha do utilizador
 
 32. **Ligação Direta** — tráfego com o IP normal da sua internet (predefinição)
-33. **Proxy / VPN** — tráfego passa pelo proxy que **você** configurar
-34. O software **não inclui VPN** — só encaminha pelo proxy que indicar
-35. Funciona com HTTP, HTTPS e SOCKS5
-36. **🎭 Ocultar MAC / ID máquina / impressão digital** — gera valores falsos e aleatórios por sessão
-37. Randomiza User-Agent, idioma, fuso horário, resolução e hostname visíveis nos pedidos
-38. **Nota:** sites na internet **não recebem o MAC real** da sua placa — esta opção protege a impressão digital HTTP/browser
+33. **🌐 Ocultar IP (automático — gratuito)** — estilo **Hide My IP**: procura proxies gratuitos sozinho
+34. **Proxy / VPN (manual)** — tráfego passa pelo proxy que **você** configurar
+35. Funciona com HTTP, HTTPS e SOCKS5 (modo manual)
+36. **🎭 Ocultar MAC / ID máquina / impressão digital** — valores falsos por sessão
+37. Rotação automática de proxy se o atual falhar (modo Ocultar IP)
 
 ### H) Janela ajustável
 
@@ -108,8 +107,8 @@
 
 50. **Não envia emails** — só extrai e exporta
 51. **Não recolhe os seus dados** — corre 100% no seu PC
-52. **Não inclui VPN gratuita** — proxy é opcional e externo
-53. **Não garante** que todos os sites permitem extração (alguns bloqueiam)
+52. **Não garante** que todos os sites permitem extração (alguns bloqueiam)
+53. Proxies gratuitos podem ser **lentos** — VPN paga manual é mais fiável
 
 ---
 
@@ -125,14 +124,29 @@ Um **proxy** é um intermediário — o software envia pedidos ao proxy, e o pro
 
 ### O software inclui VPN gratuita?
 
-**Não.** O Company Email Extractor **não inclui VPN nem proxy gratuito**. O que faz é:
+**Sim — modo automático.** Escolha **🌐 Ocultar IP (automático — gratuito)** na barra lateral.
 
 | Modo | O que acontece |
 |------|----------------|
 | **Direta (IP normal)** | Ligação normal — sites veem o IP da sua internet |
-| **Proxy / VPN** | Você cola o endereço do proxy **da sua VPN** e o tráfego passa por lá |
+| **🌐 Ocultar IP (automático)** | O software procura e testa **proxies gratuitos** na internet (estilo Hide My IP) |
+| **Proxy / VPN (manual)** | Você cola o endereço do proxy **da sua VPN** |
 
-### VPNs gratuitas existem?
+### Como usar «Ocultar IP» (1 clique)
+
+1. Na barra lateral: **Privacidade** → **🌐 Ocultar IP (automático — gratuito)**
+2. Clique **🔍 Pré-visualizar** ou **▶ Iniciar Extração**
+3. Aguarde **30–60 segundos** enquanto o software testa proxies
+4. Quando encontrar um funcional, a extração começa com IP oculto
+5. Se o proxy falhar durante a extração, o software tenta outro automaticamente
+
+### Limitações dos proxies gratuitos
+
+- Podem ser **mais lentos** que VPN paga
+- Nem sempre funcionam (depende da lista pública do dia)
+- Se falhar, tente novamente ou use **Proxy/VPN manual**
+
+### VPN manual (opcional, mais fiável)
 
 Existem VPNs gratuitas (ProtonVPN free, Windscribe free, etc.), mas:
 
@@ -201,7 +215,7 @@ Documentos\CompanyEmailExtractor\
 | **Gravar enquanto extrai** | CSV/TXT em tempo real |
 | **SQLite em tempo real** | Base de dados durante extração |
 | **Anti-Bot** | Playwright + Cloudflare |
-| **Privacidade — ligação** | **Direta** ou **Proxy/VPN** (sua escolha) |
+| **Privacidade — ligação** | **Direta**, **Ocultar IP automático** ou **Proxy manual** |
 | **🎭 Ocultar impressão digital** | MAC/ID/hostname falsos + browser aleatório |
 | **Janela** | Redimensionável — arraste os cantos |
 | **🔍 Pré-visualizar** | Amostra na tabela sem gravar |
@@ -347,4 +361,4 @@ C:\Users\SeuNome\AppData\Local\CompanyEmailExtractor\custom_sources.json
 
 ---
 
-*Company Email Extractor v2.12.0 — Guia do utilizador*
+*Company Email Extractor v2.13.0 — Guia do utilizador*

@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 _lock = threading.Lock()
 _active_proxy: str | None = None
+_free_proxy_mode = False
 
 _SUPPORTED_SCHEMES = ("http://", "https://", "socks4://", "socks5://")
 
@@ -45,6 +46,21 @@ def get_active_proxy() -> str | None:
 
 def clear_active_proxy() -> None:
     set_active_proxy(None)
+
+
+def set_free_proxy_mode(enabled: bool) -> None:
+    global _free_proxy_mode
+    with _lock:
+        _free_proxy_mode = enabled
+
+
+def is_free_proxy_mode() -> bool:
+    with _lock:
+        return _free_proxy_mode
+
+
+def clear_free_proxy_mode() -> None:
+    set_free_proxy_mode(False)
 
 
 def requests_proxies() -> dict[str, str] | None:

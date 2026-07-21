@@ -15,7 +15,7 @@ from cnpj_extractor.fingerprint_privacy import (
     get_fingerprint_profile,
     playwright_stealth_script,
 )
-from cnpj_extractor.proxy_config import get_active_proxy, playwright_proxy, requests_proxies
+from cnpj_extractor.proxy_config import get_active_proxy, is_free_proxy_mode, playwright_proxy, requests_proxies, set_active_proxy
 
 # Indicadores de bloqueio anti-bot na resposta HTML
 BLOCK_PATTERNS = [
@@ -107,6 +107,27 @@ class AntibotClient:
             return True
         lower = (html or "").lower()[:8000]
         return any(re.search(pat, lower) for pat in BLOCK_PATTERNS)
+
+    def _reset_local_sessions(self) -> None:
+        for attr in ("curl_session", "cloud_session", "req_session"):
+            if hasattr(self._local, attr):
+                delattr(self._local, attr)
+
+    def _maybe_rotate_free_proxy(self) -> bool:
+        if not is_free_proxy_mode():
+            return False
+        try:
+            from cnpj_extractor.free_proxy_pool import rotate_working_proxy
+
+            new_url = rotate_working_proxy(max_tries=12)
+        except Exception:
+            return False
+        if not new_url:
+            return False
+        self.proxy_url = new_url
+        set_active_proxy(new_url)
+        self._reset_local_sessions()
+        return True
 
     def _get_curl_session(self) -> Any | None:
         try:
@@ -250,6 +271,8 @@ class AntibotClient:
 
         for attempt in range(self.max_retries):
             if attempt > 0:
+                if is_free_proxy_mode():
+                    self._maybe_rotate_free_proxy()
                 wait = self.delay_seconds * (2 ** attempt) + random.uniform(0.5, 2.0)
                 time.sleep(wait)
 
