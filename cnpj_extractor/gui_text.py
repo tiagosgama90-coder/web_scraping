@@ -75,34 +75,24 @@ PASSO 4 — MODO DE EXTRAÇÃO
   • Automático = extração completa (pode demorar horas)
 
 
-PASSO 5 — PRIVACIDADE (SUA ESCOLHA)
-------------------------------------
-Na secção «🔒 Privacidade — ligação e identidade»:
+PASSO 5 — HIDE MY IP (INTEGRADO — NÃO PRECISA INSTALAR NADA)
+-------------------------------------------------------------
+Igual à extensão Hide My IP do Chrome, mas DENTRO do software:
 
-  • Direta (IP normal) — ligação normal, predefinição
-  • 🌐 Ocultar IP (automático — gratuito) — estilo Hide My IP:
-      o software procura proxies gratuitos sozinho (1 clique)
-  • Proxy / VPN (manual) — tráfego pela VPN que VOCÊ configurar
-  • 🎭 Ocultar MAC / ID máquina / impressão digital — valores falsos
+  • «Ocultar IP (ativado)» — vem LIGADO por defeito
+  • O software esconde o seu IP automaticamente
+  • NÃO precisa instalar VPN, extensão Chrome nem outro programa
+  • Ao abrir o programa, prepara o IP oculto em segundo plano
+  • «Ocultar MAC / ID máquina» — também vem ativo por defeito
 
-COMO USAR «OCULTAR IP» (GRATUITO):
-  1. Escolha «🌐 Ocultar IP (automático — gratuito)»
-  2. Clique Pré-visualizar ou Iniciar Extração
-  3. Aguarde 30–60 s enquanto testa proxies
-  4. Quando encontrar um funcional, a extração começa com IP oculto
+Para DESATIVAR: desmarque «Ocultar IP» na barra lateral.
 
-  • 🎭 Ocultar MAC / ID máquina / impressão digital — valores falsos
-
-IMPORTANTE sobre MAC: sites na internet NÃO recebem o MAC da sua placa
-de rede. Esta opção randomiza a impressão digital visível nos pedidos HTTP.
-
-NOTA: proxies gratuitos podem ser mais lentos. VPN manual é mais fiável.
+Opções avançadas (proxy manual) — só para utilizadores experientes.
 
 
 PASSO 5b — JANELA AJUSTÁVEL
 -----------------------------
 A janela do programa pode ser redimensionada (arraste os cantos).
-Reduza ou aumente o tamanho conforme o seu ecrã.
 
 
 PASSO 6 — FILTROS E CAMPOS
@@ -158,6 +148,7 @@ EXEMPLOS RÁPIDOS
 
 Portugal (teste 2 min):
   País: PT | Fonte: FIZ | Modo: limitado | Limite: 50
+  Hide My IP: ATIVADO (predefinição)
 
 Portugal (completo):
   País: PT | Fonte: FIZ | Modo: automático | Limite: 0
@@ -166,45 +157,39 @@ Espanha (teste rápido):
   Separador «Diretórios» → Espanha → Empresite → Usar
   Pré-visualizar: 25 → ver emails no ecrã
 
-França (teste):
-  Diretórios → França → Societe.com → Usar → Pré-visualizar 25
-
-Alemanha (teste):
-  Diretórios → Alemanha → Gelbe Seiten → Usar → Pré-visualizar 25
-
-Site qualquer (sitemap):
-  Minhas Fontes → + Adicionar → Tipo: Sitemap
-  URL: https://diretorio.fiz.co/sitemap.xml
-
-Site qualquer (página):
-  Minhas Fontes → + Adicionar → Tipo: Página
-  URL: https://exemplo.com/contactos
+Brasil (milhões):
+  País: BR | Fonte: Receita Federal | UF: Todos | Modo: automático
+  Limite: 0 | Gravar enquanto extrai: ON
 
 
-DICAS
------
-  • Comece sempre com limite 10-50 para testar
-  • Nem todas as empresas têm e-mail registado
-  • Respeite os termos de uso dos sites
-  • Use os dados em conformidade com RGPD/LGPD
+ONDE FICAM OS FICHEIROS
+------------------------
+  Documentos\\CompanyEmailExtractor\\
+    downloads\\  — ZIPs Receita Federal (Brasil)
+    export\\     — CSV, TXT, SQLite exportados
 
 
-PROBLEMAS?
-----------
-  • 0 resultados → teste com limite 10, modo limitado
-  • Site bloqueado → alguns sites têm proteção anti-bot
-  • Muito lento → normal no modo automático completo
+PROBLEMAS COMUNS
+----------------
+  • 0 resultados → Modo limitado, limite 50, Anti-Bot ON
+  • Site bloqueado → Hide My IP já vem ativo; aguarde preparação
+  • Hide My IP falhou → tente de novo em 1 minuto
+  • Excel não abre ficheiro grande → usar parte_0001.csv (1000 linhas)
+
+
+AVISOS LEGAIS
+-------------
+  • Use em conformidade com LGPD (Brasil) e RGPD (Portugal/Europa)
+  • Não envie emails em massa sem consentimento
+  • O programa extrai dados — não envia emails
 """
 
 ADD_SOURCE_HELP = """
 TIPOS DE FONTE:
 
-• Sitemap XML — para sites com sitemap (descobre páginas sozinho)
-  Exemplo: https://site.com/sitemap.xml
+• sitemap — URL de um sitemap XML (descobre páginas automaticamente)
+• urls — Lista de URLs (uma por linha ou ficheiro .txt)
+• page — Uma página ou site (segue links no mesmo domínio)
 
-• Lista de URLs — cole links diretos (um por linha)
-  Exemplo: https://site.com/empresa-123
-
-• Página/Site — uma URL; modo auto segue links no mesmo site
-  Exemplo: https://site.com/diretorio
+DICA: Para sites grandes, use o tipo «sitemap» se o site tiver sitemap.xml.
 """

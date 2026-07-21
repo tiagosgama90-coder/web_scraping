@@ -120,6 +120,33 @@ def _test_batch(candidates: list[str]) -> str | None:
     return None
 
 
+def get_cached_working_proxy(*, quick_check: bool = True) -> str | None:
+    """Devolve proxy já preparado em cache, se ainda funcionar."""
+    with _lock:
+        proxy = _active_pool_proxy
+    if not proxy:
+        return None
+    if quick_check and test_proxy(proxy, timeout=4.0):
+        return proxy
+    return None
+
+
+def prewarm_proxy_pool(
+    *,
+    max_tries: int = 20,
+    progress_callback: Callable[[str], None] | None = None,
+) -> str | None:
+    """Prepara proxies em segundo plano (ao abrir o software)."""
+    cached = get_cached_working_proxy()
+    if cached:
+        if progress_callback:
+            progress_callback(f"✅ IP oculto pronto: {cached}")
+        return cached
+    if progress_callback:
+        progress_callback("🌐 A preparar Hide My IP integrado...")
+    return acquire_working_proxy(max_tries=max_tries, progress_callback=progress_callback)
+
+
 def acquire_working_proxy(
     *,
     max_tries: int = 30,
@@ -132,7 +159,7 @@ def acquire_working_proxy(
         if progress_callback:
             progress_callback(msg)
 
-    report("🌐 A procurar proxies gratuitos na internet...")
+    report("🌐 Hide My IP integrado — a procurar servidor anónimo...")
     candidates = _refresh_candidates(force=True)
     if not candidates:
         report("⚠ Não foi possível obter lista de proxies. A tentar de novo...")
