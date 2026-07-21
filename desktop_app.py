@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.16.1."""
+"""Aplicação desktop nativa — Company Email Extractor v2.17.0."""
 
 from __future__ import annotations
 
@@ -84,19 +84,37 @@ from cnpj_extractor.sources.website_scraper import WebScraperSource
 from cnpj_extractor.streaming_export import StreamingExporter
 from cnpj_extractor.utils import dedupe_by_email, dedupe_records, filter_valid_email_records, format_cnpj
 
-ctk.set_appearance_mode("System")
+ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.16.1"
+APP_VERSION = "2.17.0"
 
-HUD_BG = "#060b14"
-HUD_FG = "#00a8ff"
-HUD_BORDER = "#0d47a1"
-HUD_FONT = ("Consolas", 12)
+TAB_EXTRACT = "Extrair"
+TAB_SOURCES = "Fontes"
+TAB_GUIDE = "Guia"
 
-ACTIVITY_BG = ("gray94", "gray14")
-ACTIVITY_FG = ("gray15", "#9fd4ff")
+# Paleta visual
+COLOR_PRIMARY = "#3b82f6"
+COLOR_PRIMARY_HOVER = "#2563eb"
+COLOR_SUCCESS = "#22c55e"
+COLOR_SUCCESS_HOVER = "#16a34a"
+COLOR_DANGER = "#ef4444"
+COLOR_DANGER_HOVER = "#dc2626"
+COLOR_ACCENT = "#0ea5e9"
+COLOR_ACCENT_HOVER = "#0284c7"
+COLOR_MUTED = "#94a3b8"
+COLOR_CARD = ("#f8fafc", "#1e293b")
+COLOR_CARD_BORDER = ("#e2e8f0", "#334155")
+COLOR_SIDEBAR = ("#ffffff", "#0f172a")
+
+HUD_BG = "#0b1220"
+HUD_FG = "#38bdf8"
+HUD_BORDER = "#1d4ed8"
+HUD_FONT = ("Consolas", 11)
+
+ACTIVITY_BG = ("#f1f5f9", "#111827")
+ACTIVITY_FG = ("#1e293b", "#bae6fd")
 ACTIVITY_FONT = ("Consolas", 10)
 MAX_ACTIVITY_LINES = 500
 
@@ -115,6 +133,49 @@ BRAZIL_UFS = [
     "RO", "RR", "SC", "SP", "SE", "TO",
 ]
 BRAZIL_UF_CODES = [uf for uf in BRAZIL_UFS if uf != "Todos"]
+
+
+class CollapsibleSection:
+    """Secção colapsável para organizar opções avançadas."""
+
+    def __init__(self, parent, title: str, *, open_default: bool = False) -> None:
+        self._open = open_default
+        self.wrap = ctk.CTkFrame(
+            parent,
+            fg_color=COLOR_CARD,
+            corner_radius=12,
+            border_width=1,
+            border_color=COLOR_CARD_BORDER,
+        )
+        self.wrap.pack(fill="x", pady=(0, 8))
+
+        header = ctk.CTkFrame(self.wrap, fg_color="transparent", cursor="hand2")
+        header.pack(fill="x", padx=10, pady=8)
+        self._arrow = ctk.CTkLabel(header, text="▼" if open_default else "▶", width=16, anchor="w")
+        self._arrow.pack(side="left")
+        self._title = ctk.CTkLabel(
+            header,
+            text=title,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            anchor="w",
+        )
+        self._title.pack(side="left", fill="x", expand=True, padx=(4, 0))
+
+        self.body = ctk.CTkFrame(self.wrap, fg_color="transparent")
+        if open_default:
+            self.body.pack(fill="x", padx=12, pady=(0, 10))
+
+        for widget in (header, self._arrow, self._title):
+            widget.bind("<Button-1>", lambda _e: self.toggle())
+
+    def toggle(self) -> None:
+        self._open = not self._open
+        if self._open:
+            self.body.pack(fill="x", padx=12, pady=(0, 10))
+            self._arrow.configure(text="▼")
+        else:
+            self.body.pack_forget()
+            self._arrow.configure(text="▶")
 
 
 class AddSourceDialog(ctk.CTkToplevel):
@@ -221,8 +282,8 @@ class CompanyEmailApp(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
         self.title(f"{APP_NAME} v{APP_VERSION}")
-        self.geometry("1240x760")
-        self.minsize(880, 520)
+        self.geometry("1320x820")
+        self.minsize(960, 600)
         self.resizable(True, True)
 
         self.records: list[dict] = []
@@ -253,243 +314,154 @@ class CompanyEmailApp(ctk.CTk):
 
     def _show_welcome_if_first_run(self) -> None:
         if not load_custom_sources():
-            self.tabview.set("📖 Guia")
+            self.tabview.set(TAB_GUIDE)
             self._set_status("Bem-vindo! Leia o Guia e depois comece com um teste rápido (limite 50).")
 
     def _build_ui(self) -> None:
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        # Sidebar
-        sidebar = ctk.CTkFrame(self, width=300, corner_radius=0)
+        sidebar = ctk.CTkFrame(self, width=290, corner_radius=0, fg_color=COLOR_SIDEBAR)
         sidebar.grid(row=0, column=0, sticky="nsew")
         sidebar.grid_columnconfigure(0, weight=1)
-        sidebar.grid_rowconfigure(7, weight=1)
+        sidebar.grid_rowconfigure(1, weight=1)
 
-        ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
-            row=0, column=0, padx=20, pady=(20, 2), sticky="w"
-        )
-        ctk.CTkLabel(sidebar, text="BR • PT • ES • FR • DE • IT • +12 países", font=ctk.CTkFont(size=11), text_color="gray").grid(
-            row=1, column=0, padx=20, pady=(0, 8), sticky="w"
-        )
-
-        ctk.CTkLabel(sidebar, text="País (filtros)", anchor="w").grid(row=2, column=0, padx=20, sticky="ew")
-        self.country_var = ctk.StringVar(value="PT")
-        ctk.CTkOptionMenu(
-            sidebar,
-            variable=self.country_var,
-            values=COUNTRY_MENU_ORDER,
-            command=self._on_country_change,
-            width=260,
-        ).grid(row=3, column=0, padx=20, pady=(4, 6))
-
-        ctk.CTkLabel(sidebar, text="Base de dados / Diretório", anchor="w",
-                     font=ctk.CTkFont(size=13, weight="bold")).grid(row=4, column=0, padx=20, sticky="ew")
-        self.source_var = ctk.StringVar(value="")
-        self.source_menu = ctk.CTkOptionMenu(
-            sidebar,
-            variable=self.source_var,
-            width=260,
-            command=self._on_source_selected,
-            dynamic_resizing=False,
-        )
-        self.source_menu.grid(row=5, column=0, padx=20, pady=(4, 2))
+        brand = ctk.CTkFrame(sidebar, fg_color="transparent")
+        brand.grid(row=0, column=0, sticky="ew", padx=16, pady=(18, 8))
         ctk.CTkLabel(
-            sidebar,
-            text="Todas as bases por país — escolha aqui (FIZ, Empresite, Receita…)",
-            font=ctk.CTkFont(size=10),
-            text_color="gray",
-            wraplength=260,
-            justify="left",
-        ).grid(row=6, column=0, padx=20, pady=(0, 6), sticky="w")
+            brand,
+            text="Email Extractor",
+            font=ctk.CTkFont(size=24, weight="bold"),
+            anchor="w",
+        ).pack(fill="x")
+        ctk.CTkLabel(
+            brand,
+            text="Extraia emails de empresas em 19 países",
+            font=ctk.CTkFont(size=12),
+            text_color=COLOR_MUTED,
+            anchor="w",
+        ).pack(fill="x", pady=(2, 0))
 
-        sidebar_scroll = ctk.CTkScrollableFrame(sidebar, label_text="Opções avançadas")
-        sidebar_scroll.grid(row=7, column=0, padx=12, pady=(0, 6), sticky="nsew")
+        sidebar_scroll = ctk.CTkScrollableFrame(sidebar, fg_color="transparent")
+        sidebar_scroll.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 8))
         sidebar_scroll.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(sidebar_scroll, text="Modo", anchor="w").pack(fill="x", padx=4)
+        step1 = ctk.CTkFrame(sidebar_scroll, fg_color=COLOR_CARD, corner_radius=12,
+                               border_width=1, border_color=COLOR_CARD_BORDER)
+        step1.pack(fill="x", pady=(0, 8))
+        s1 = ctk.CTkFrame(step1, fg_color="transparent")
+        s1.pack(fill="x", padx=12, pady=12)
+        ctk.CTkLabel(s1, text="1  Escolher base", font=ctk.CTkFont(size=14, weight="bold"), anchor="w").pack(fill="x")
+        ctk.CTkLabel(s1, text="País (filtros)", font=ctk.CTkFont(size=11), text_color=COLOR_MUTED, anchor="w").pack(fill="x", pady=(8, 2))
+        self.country_var = ctk.StringVar(value="PT")
+        ctk.CTkOptionMenu(s1, variable=self.country_var, values=COUNTRY_MENU_ORDER,
+                          command=self._on_country_change, width=250).pack(fill="x")
+        ctk.CTkLabel(s1, text="Base de dados", font=ctk.CTkFont(size=11), text_color=COLOR_MUTED, anchor="w").pack(fill="x", pady=(10, 2))
+        self.source_var = ctk.StringVar(value="")
+        self.source_menu = ctk.CTkOptionMenu(
+            s1, variable=self.source_var, width=250,
+            command=self._on_source_selected, dynamic_resizing=False,
+        )
+        self.source_menu.pack(fill="x")
+
+        step2 = ctk.CTkFrame(sidebar_scroll, fg_color=COLOR_CARD, corner_radius=12,
+                               border_width=1, border_color=COLOR_CARD_BORDER)
+        step2.pack(fill="x", pady=(0, 8))
+        s2 = ctk.CTkFrame(step2, fg_color="transparent")
+        s2.pack(fill="x", padx=12, pady=12)
+        ctk.CTkLabel(s2, text="2  Quantidade", font=ctk.CTkFont(size=14, weight="bold"), anchor="w").pack(fill="x")
+        mode_row = ctk.CTkFrame(s2, fg_color="transparent")
+        mode_row.pack(fill="x", pady=(8, 0))
+        ctk.CTkLabel(mode_row, text="Modo", font=ctk.CTkFont(size=11), text_color=COLOR_MUTED).pack(side="left")
         self.mode_var = ctk.StringVar(value="limitado")
-        ctk.CTkOptionMenu(sidebar_scroll, variable=self.mode_var,
-                          values=["limitado", "automatico"], width=260).pack(fill="x", padx=4, pady=(4, 10))
-
-        ctk.CTkLabel(sidebar_scroll, text="Limite (0 = sem limite)", anchor="w").pack(fill="x", padx=4)
+        ctk.CTkOptionMenu(mode_row, variable=self.mode_var, values=["limitado", "automatico"], width=150).pack(side="right")
+        lim_row = ctk.CTkFrame(s2, fg_color="transparent")
+        lim_row.pack(fill="x", pady=(8, 0))
+        ctk.CTkLabel(lim_row, text="Limite (0 = ilimitado)", font=ctk.CTkFont(size=11), text_color=COLOR_MUTED).pack(side="left")
         self.max_var = ctk.StringVar(value="100")
-        ctk.CTkEntry(sidebar_scroll, textvariable=self.max_var, width=260).pack(fill="x", padx=4, pady=(4, 10))
+        ctk.CTkEntry(lim_row, textvariable=self.max_var, width=72).pack(side="right")
 
-        self.filter_frame = ctk.CTkFrame(sidebar_scroll, fg_color="transparent")
-        self.filter_frame.pack(fill="x", padx=4)
+        filters_sec = CollapsibleSection(sidebar_scroll, "3  Filtros por país", open_default=True)
+        self.filter_frame = ctk.CTkFrame(filters_sec.body, fg_color="transparent")
+        self.filter_frame.pack(fill="x")
 
-        self.fields_scroll = ctk.CTkScrollableFrame(sidebar_scroll, height=100, label_text="Campos a exportar")
-        self.fields_scroll.pack(fill="x", padx=4, pady=(4, 4))
+        fields_sec = CollapsibleSection(sidebar_scroll, "4  Campos e qualidade", open_default=False)
+        self.fields_scroll = ctk.CTkScrollableFrame(fields_sec.body, height=90, label_text="Campos a exportar")
+        self.fields_scroll.pack(fill="x", pady=(0, 6))
         self.field_vars: dict[str, ctk.BooleanVar] = {}
         self._build_field_selector()
-
         self.only_email_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(sidebar_scroll, text="Obrigatório ter e-mail", variable=self.only_email_var).pack(
-            fill="x", padx=4, pady=2
-        )
+        ctk.CTkCheckBox(fields_sec.body, text="Obrigatório ter e-mail", variable=self.only_email_var).pack(anchor="w", pady=2)
         self.require_phone_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(sidebar_scroll, text="Obrigatório ter telefone", variable=self.require_phone_var).pack(
-            fill="x", padx=4, pady=2
-        )
+        ctk.CTkCheckBox(fields_sec.body, text="Obrigatório ter telefone", variable=self.require_phone_var).pack(anchor="w", pady=2)
         self.require_cnpj_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(sidebar_scroll, text="Obrigatório ter CNPJ/NIPC", variable=self.require_cnpj_var).pack(
-            fill="x", padx=4, pady=2
-        )
+        ctk.CTkCheckBox(fields_sec.body, text="Obrigatório ter CNPJ/NIPC", variable=self.require_cnpj_var).pack(anchor="w", pady=2)
         self.mx_validate_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(
-            sidebar_scroll,
-            text="🌐 Validar domínio DNS/MX",
-            variable=self.mx_validate_var,
-        ).pack(fill="x", padx=4, pady=2)
+        ctk.CTkCheckBox(fields_sec.body, text="Validar domínio DNS/MX", variable=self.mx_validate_var).pack(anchor="w", pady=2)
 
+        export_sec = CollapsibleSection(sidebar_scroll, "5  Exportação", open_default=False)
         self.auto_export_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(
-            sidebar_scroll,
-            text="📥 Guardar CSV filtrado ao concluir",
-            variable=self.auto_export_var,
-        ).pack(fill="x", padx=4, pady=2)
-
-        chunk_row = ctk.CTkFrame(sidebar_scroll, fg_color="transparent")
-        chunk_row.pack(fill="x", padx=4, pady=(2, 4))
+        ctk.CTkCheckBox(export_sec.body, text="Guardar CSV ao concluir", variable=self.auto_export_var).pack(anchor="w", pady=2)
+        chunk_row = ctk.CTkFrame(export_sec.body, fg_color="transparent")
+        chunk_row.pack(fill="x", pady=2)
         self.chunk_export_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(
-            chunk_row,
-            text="Dividir exportação",
-            variable=self.chunk_export_var,
-            font=ctk.CTkFont(size=11),
-        ).pack(side="left")
+        ctk.CTkCheckBox(chunk_row, text="Dividir em ficheiros de", variable=self.chunk_export_var).pack(side="left")
         self.chunk_size_var = ctk.StringVar(value=str(CHUNK_SIZE_DEFAULT))
-        ctk.CTkEntry(chunk_row, textvariable=self.chunk_size_var, width=56).pack(side="left", padx=(6, 4))
-        ctk.CTkLabel(chunk_row, text="linhas/ficheiro", font=ctk.CTkFont(size=11), text_color="gray").pack(side="left")
-
+        ctk.CTkEntry(chunk_row, textvariable=self.chunk_size_var, width=52).pack(side="left", padx=4)
+        ctk.CTkLabel(chunk_row, text="linhas", text_color=COLOR_MUTED, font=ctk.CTkFont(size=11)).pack(side="left")
         self.stream_export_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(
-            sidebar_scroll,
-            text="💾 Gravar ficheiros enquanto extrai",
-            variable=self.stream_export_var,
-            font=ctk.CTkFont(size=11),
-        ).pack(fill="x", padx=4, pady=2)
-
+        ctk.CTkCheckBox(export_sec.body, text="Gravar enquanto extrai", variable=self.stream_export_var).pack(anchor="w", pady=2)
         self.sqlite_stream_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(
-            sidebar_scroll,
-            text="🗄 SQLite em tempo real (volumes grandes)",
-            variable=self.sqlite_stream_var,
-            font=ctk.CTkFont(size=11),
-        ).pack(fill="x", padx=4, pady=2)
+        ctk.CTkCheckBox(export_sec.body, text="SQLite em tempo real", variable=self.sqlite_stream_var).pack(anchor="w", pady=2)
 
+        privacy_sec = CollapsibleSection(sidebar_scroll, "6  Privacidade e anti-bot", open_default=False)
         self.antibot_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(
-            sidebar_scroll,
-            text="🛡 Anti-Bot (Playwright + Cloudflare)",
-            variable=self.antibot_var,
-        ).pack(fill="x", padx=4, pady=(6, 2))
-
-        privacy = ctk.CTkFrame(sidebar_scroll, fg_color=("gray92", "gray18"), corner_radius=8)
-        privacy.pack(fill="x", padx=4, pady=(4, 6))
-        ctk.CTkLabel(
-            privacy,
-            text="🌐 Hide My IP — integrado no software",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            anchor="w",
-        ).pack(fill="x", padx=10, pady=(8, 4))
+        ctk.CTkCheckBox(privacy_sec.body, text="Anti-Bot (Playwright)", variable=self.antibot_var).pack(anchor="w", pady=2)
         self.hide_ip_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(
-            privacy,
-            text="Ocultar IP (ativado)",
-            variable=self.hide_ip_var,
-            command=self._on_hide_ip_toggle,
-            font=ctk.CTkFont(size=13, weight="bold"),
-        ).pack(fill="x", padx=10, pady=(0, 4))
+        ctk.CTkCheckBox(privacy_sec.body, text="Hide My IP (recomendado)", variable=self.hide_ip_var,
+                        command=self._on_hide_ip_toggle).pack(anchor="w", pady=2)
         self.fingerprint_mask_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(
-            privacy,
-            text="🎭 Randomizar impressão digital do browser",
-            variable=self.fingerprint_mask_var,
-            command=self._on_fingerprint_mask_change,
-            font=ctk.CTkFont(size=11),
-        ).pack(fill="x", padx=10, pady=(0, 2))
-        ctk.CTkLabel(
-            privacy,
-            text=(
-                "Muda User-Agent, idioma e resolução vistos pelos sites. "
-                "Nota: o MAC real da placa NUNCA é enviado à internet."
-            ),
-            font=ctk.CTkFont(size=9),
-            text_color="gray",
-            wraplength=250,
-            justify="left",
-            anchor="w",
-        ).pack(fill="x", padx=10, pady=(0, 6))
-        ctk.CTkLabel(
-            privacy,
-            text="HUD completo no separador «Extrair».",
-            font=ctk.CTkFont(size=9),
-            text_color="gray",
-            wraplength=250,
-            anchor="w",
-        ).pack(fill="x", padx=10, pady=(0, 4))
-        ctk.CTkButton(
-            privacy,
-            text="🔄 Atualizar HUD",
-            height=28,
-            font=ctk.CTkFont(size=11),
-            command=self._refresh_privacy_status_async,
-        ).pack(fill="x", padx=10, pady=(0, 6))
+        ctk.CTkCheckBox(privacy_sec.body, text="Randomizar impressão digital", variable=self.fingerprint_mask_var,
+                        command=self._on_fingerprint_mask_change).pack(anchor="w", pady=2)
+        ctk.CTkButton(privacy_sec.body, text="Atualizar painel de privacidade", height=30,
+                      fg_color=COLOR_ACCENT, hover_color=COLOR_ACCENT_HOVER,
+                      command=self._refresh_privacy_status_async).pack(fill="x", pady=(6, 2))
         self.advanced_proxy_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(
-            privacy,
-            text="Opções avançadas: proxy manual",
-            variable=self.advanced_proxy_var,
-            command=self._on_advanced_proxy_toggle,
-            font=ctk.CTkFont(size=10),
-        ).pack(fill="x", padx=10, pady=(0, 2))
-        self._advanced_frame = ctk.CTkFrame(privacy, fg_color="transparent")
+        ctk.CTkCheckBox(privacy_sec.body, text="Proxy manual (avançado)", variable=self.advanced_proxy_var,
+                        command=self._on_advanced_proxy_toggle).pack(anchor="w", pady=2)
+        self._advanced_frame = ctk.CTkFrame(privacy_sec.body, fg_color="transparent")
         self.proxy_url_var = ctk.StringVar(value="")
         self.proxy_entry = ctk.CTkEntry(
-            self._advanced_frame,
-            textvariable=self.proxy_url_var,
-            placeholder_text="socks5://127.0.0.1:1080 (opcional)",
-            font=ctk.CTkFont(size=11),
-            state="disabled",
+            self._advanced_frame, textvariable=self.proxy_url_var,
+            placeholder_text="socks5://127.0.0.1:1080", state="disabled",
         )
-        self.proxy_entry.pack(fill="x", padx=10, pady=(0, 4))
-        ctk.CTkLabel(
-            privacy,
-            text="Só use proxy manual se souber o que está a fazer.",
-            font=ctk.CTkFont(size=9),
-            text_color="gray",
-            wraplength=250,
-            justify="left",
-            anchor="w",
-        ).pack(fill="x", padx=10, pady=(0, 8))
+        self.proxy_entry.pack(fill="x", pady=(0, 4))
 
-        paths = ctk.CTkFrame(sidebar_scroll, fg_color="transparent")
-        paths.pack(fill="x", padx=4, pady=(4, 8))
-        ctk.CTkLabel(paths, text="Pasta de downloads (BR/RFB)", anchor="w").pack(fill="x")
+        paths_sec = CollapsibleSection(sidebar_scroll, "7  Pastas", open_default=False)
+        ctk.CTkLabel(paths_sec.body, text="Downloads (Brasil)", font=ctk.CTkFont(size=11),
+                     text_color=COLOR_MUTED, anchor="w").pack(fill="x")
         self.data_dir_var = ctk.StringVar(value=str(DEFAULT_DATA_DIR))
-        data_row = ctk.CTkFrame(paths, fg_color="transparent")
-        data_row.pack(fill="x", pady=(2, 6))
-        ctk.CTkEntry(data_row, textvariable=self.data_dir_var).pack(side="left", fill="x", expand=True, padx=(0, 4))
-        ctk.CTkButton(data_row, text="📂", width=36, command=self._browse_data_dir).pack(side="right")
-
-        ctk.CTkLabel(paths, text="Pasta de exportação", anchor="w").pack(fill="x")
+        dr = ctk.CTkFrame(paths_sec.body, fg_color="transparent")
+        dr.pack(fill="x", pady=(2, 8))
+        ctk.CTkEntry(dr, textvariable=self.data_dir_var).pack(side="left", fill="x", expand=True, padx=(0, 4))
+        ctk.CTkButton(dr, text="…", width=32, command=self._browse_data_dir).pack(side="right")
+        ctk.CTkLabel(paths_sec.body, text="Exportação", font=ctk.CTkFont(size=11),
+                     text_color=COLOR_MUTED, anchor="w").pack(fill="x")
         self.export_dir_var = ctk.StringVar(value=str(DEFAULT_EXPORT_DIR))
-        export_row = ctk.CTkFrame(paths, fg_color="transparent")
-        export_row.pack(fill="x", pady=(2, 0))
-        ctk.CTkEntry(export_row, textvariable=self.export_dir_var).pack(side="left", fill="x", expand=True, padx=(0, 4))
-        ctk.CTkButton(export_row, text="📂", width=36, command=self._browse_export_dir).pack(side="right")
+        er = ctk.CTkFrame(paths_sec.body, fg_color="transparent")
+        er.pack(fill="x", pady=(2, 0))
+        ctk.CTkEntry(er, textvariable=self.export_dir_var).pack(side="left", fill="x", expand=True, padx=(0, 4))
+        ctk.CTkButton(er, text="…", width=32, command=self._browse_export_dir).pack(side="right")
 
-        ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=8, column=0, padx=20, pady=(0, 12), sticky="ew")
+        ctk.CTkButton(sidebar, text="Abrir guia de utilização", height=36, fg_color="transparent",
+                      border_width=1, border_color=COLOR_CARD_BORDER,
+                      command=lambda: self.tabview.set(TAB_GUIDE)).grid(row=2, column=0, padx=16, pady=(0, 14), sticky="ew")
 
-        # Main tabs
-        self.tabview = ctk.CTkTabview(self, corner_radius=0)
-        self.tabview.grid(row=0, column=1, sticky="nsew")
-        tab_extract = self.tabview.add("📊 Extrair")
-        tab_sources = self.tabview.add("➕ Minhas Fontes")
-        tab_guide = self.tabview.add("📖 Guia")
+        self.tabview = ctk.CTkTabview(self, corner_radius=12)
+        self.tabview.grid(row=0, column=1, sticky="nsew", padx=(0, 8), pady=8)
+        tab_extract = self.tabview.add(TAB_EXTRACT)
+        tab_sources = self.tabview.add(TAB_SOURCES)
+        tab_guide = self.tabview.add(TAB_GUIDE)
 
         self._build_extract_tab(tab_extract)
         self._build_sources_tab(tab_sources)
@@ -497,83 +469,80 @@ class CompanyEmailApp(ctk.CTk):
 
     def _build_extract_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(4, weight=1)
+        parent.grid_rowconfigure(3, weight=1)
 
-        hud_wrap = ctk.CTkFrame(parent, fg_color=HUD_BG, corner_radius=8, border_width=2, border_color=HUD_BORDER)
-        hud_wrap.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
-        hud_wrap.grid_columnconfigure(0, weight=1)
+        top = ctk.CTkFrame(parent, fg_color="transparent")
+        top.grid(row=0, column=0, sticky="ew", padx=4, pady=(4, 8))
+        top.grid_columnconfigure(0, weight=1)
+
+        hud_card = ctk.CTkFrame(top, fg_color=HUD_BG, corner_radius=12, border_width=1, border_color=HUD_BORDER)
+        hud_card.grid(row=0, column=0, sticky="ew")
+        hud_card.grid_columnconfigure(0, weight=1)
+        hud_head = ctk.CTkFrame(hud_card, fg_color="transparent")
+        hud_head.grid(row=0, column=0, sticky="ew", padx=12, pady=(8, 0))
         ctk.CTkLabel(
-            hud_wrap,
-            text="◉ PRIVACY HUD — RÁDIO DIGITAL",
-            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
-            text_color=HUD_FG,
-            anchor="w",
-        ).grid(row=0, column=0, sticky="w", padx=12, pady=(8, 0))
+            hud_head, text="Privacidade", font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=HUD_FG, anchor="w",
+        ).pack(side="left")
+        self._hud_summary = ctk.CTkLabel(
+            hud_head, text="A calibrar…", font=ctk.CTkFont(size=11),
+            text_color=COLOR_MUTED, anchor="e",
+        )
+        self._hud_summary.pack(side="right", fill="x", expand=True, padx=(8, 0))
+        self._hud_toggle_btn = ctk.CTkButton(
+            hud_head, text="Expandir", width=72, height=24, font=ctk.CTkFont(size=11),
+            fg_color=HUD_BORDER, hover_color=COLOR_PRIMARY,
+            command=self._toggle_hud_panel,
+        )
+        self._hud_toggle_btn.pack(side="right", padx=(8, 0))
+        self._hud_body = ctk.CTkFrame(hud_card, fg_color="transparent")
         self._privacy_hud = ctk.CTkTextbox(
-            hud_wrap,
-            height=180,
-            font=ctk.CTkFont(family="Consolas", size=12),
-            fg_color=HUD_BG,
-            text_color=HUD_FG,
-            border_width=0,
-            wrap="none",
+            self._hud_body, height=120, font=ctk.CTkFont(family="Consolas", size=11),
+            fg_color=HUD_BG, text_color=HUD_FG, border_width=0, wrap="none",
             activate_scrollbars=False,
         )
-        self._privacy_hud.grid(row=1, column=0, sticky="ew", padx=10, pady=(4, 10))
+        self._privacy_hud.pack(fill="x", padx=10, pady=(4, 10))
+        self._hud_expanded = False
         self._set_hud_display(self._loading_hud_text())
 
-        actions = ctk.CTkFrame(parent, fg_color=("gray92", "gray17"), corner_radius=10)
-        actions.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
-        actions.grid_columnconfigure(0, weight=1)
-        actions.grid_columnconfigure(1, weight=1)
-        actions.grid_columnconfigure(2, weight=2)
+        actions = ctk.CTkFrame(top, fg_color=COLOR_CARD, corner_radius=12,
+                                 border_width=1, border_color=COLOR_CARD_BORDER)
+        actions.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+        actions.grid_columnconfigure((0, 1, 2), weight=1)
+        btn_row = ctk.CTkFrame(actions, fg_color="transparent")
+        btn_row.grid(row=0, column=0, columnspan=3, sticky="ew", padx=12, pady=12)
+        btn_row.grid_columnconfigure((0, 1, 2), weight=1)
 
         self.start_btn = ctk.CTkButton(
-            actions,
-            text="▶  INICIAR EXTRAÇÃO",
-            height=52,
-            font=ctk.CTkFont(size=16, weight="bold"),
+            btn_row, text="Iniciar extração", height=48,
+            font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color=COLOR_SUCCESS, hover_color=COLOR_SUCCESS_HOVER,
             command=self._start_extraction,
         )
-        self.start_btn.grid(row=0, column=0, padx=(10, 6), pady=10, sticky="ew")
+        self.start_btn.grid(row=0, column=0, padx=(0, 6), sticky="ew")
 
         self.stop_btn = ctk.CTkButton(
-            actions,
-            text="⏹  PARAR",
-            height=52,
-            font=ctk.CTkFont(size=15, weight="bold"),
-            fg_color="#c0392b",
-            hover_color="#962d22",
-            command=self._stop_extraction,
-            state="disabled",
+            btn_row, text="Parar", height=48, font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color=COLOR_DANGER, hover_color=COLOR_DANGER_HOVER,
+            command=self._stop_extraction, state="disabled",
         )
-        self.stop_btn.grid(row=0, column=1, padx=6, pady=10, sticky="ew")
+        self.stop_btn.grid(row=0, column=1, padx=6, sticky="ew")
 
-        preview_wrap = ctk.CTkFrame(actions, fg_color="transparent")
-        preview_wrap.grid(row=0, column=2, padx=(6, 10), pady=10, sticky="ew")
+        preview_wrap = ctk.CTkFrame(btn_row, fg_color="transparent")
+        preview_wrap.grid(row=0, column=2, padx=(6, 0), sticky="ew")
         preview_wrap.grid_columnconfigure(1, weight=1)
         self.preview_count_var = ctk.StringVar(value="25")
-        ctk.CTkEntry(preview_wrap, textvariable=self.preview_count_var, width=48).grid(row=0, column=0, padx=(0, 6))
+        ctk.CTkEntry(preview_wrap, textvariable=self.preview_count_var, width=44, placeholder_text="Qtd").grid(row=0, column=0, padx=(0, 6))
         self.preview_btn = ctk.CTkButton(
-            preview_wrap,
-            text="🔍 Pré-visualizar",
-            height=52,
+            preview_wrap, text="Pré-visualizar", height=48,
             font=ctk.CTkFont(size=14, weight="bold"),
-            fg_color="#1a5276",
-            hover_color="#154360",
+            fg_color=COLOR_ACCENT, hover_color=COLOR_ACCENT_HOVER,
             command=self._start_preview,
         )
         self.preview_btn.grid(row=0, column=1, sticky="ew")
-        ctk.CTkLabel(
-            actions,
-            text="Aguarde SYS: READY no HUD acima · Pré-visualizar mostra amostra na tabela sem gravar ficheiros",
-            font=ctk.CTkFont(size=11),
-            text_color="gray",
-            anchor="w",
-        ).grid(row=1, column=0, columnspan=3, sticky="ew", padx=12, pady=(0, 8))
 
-        stats = ctk.CTkFrame(parent)
-        stats.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 6))
+        stats = ctk.CTkFrame(parent, fg_color="transparent")
+        stats.grid(row=1, column=0, sticky="ew", padx=4, pady=(0, 6))
         for i in range(4):
             stats.grid_columnconfigure(i, weight=1)
         self.stat_total = self._stat_card(stats, "Registos", "0", 0)
@@ -581,24 +550,40 @@ class CompanyEmailApp(ctk.CTk):
         self.stat_country = self._stat_card(stats, "País", "—", 2)
         self.stat_status = self._stat_card(stats, "Estado", "Pronto", 3)
 
-        prog = ctk.CTkFrame(parent, fg_color="transparent")
-        prog.grid(row=3, column=0, sticky="ew", padx=12, pady=4)
+        prog = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=10,
+                            border_width=1, border_color=COLOR_CARD_BORDER)
+        prog.grid(row=2, column=0, sticky="ew", padx=4, pady=(0, 6))
         prog.grid_columnconfigure(0, weight=1)
-        self.progress = ctk.CTkProgressBar(prog, height=14)
-        self.progress.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+        prog_inner = ctk.CTkFrame(prog, fg_color="transparent")
+        prog_inner.pack(fill="x", padx=12, pady=10)
+        prog_inner.grid_columnconfigure(0, weight=1)
+        self.progress = ctk.CTkProgressBar(prog_inner, height=10, progress_color=COLOR_PRIMARY)
+        self.progress.grid(row=0, column=0, sticky="ew", pady=(0, 6))
         self.progress.set(0)
-        self.status_label = ctk.CTkLabel(prog, text="Configure e clique em Iniciar Extração.", anchor="w")
+        self.status_label = ctk.CTkLabel(
+            prog_inner, text="Escolha uma base à esquerda e clique Pré-visualizar ou Iniciar.",
+            anchor="w", font=ctk.CTkFont(size=12), text_color=COLOR_MUTED,
+        )
         self.status_label.grid(row=1, column=0, sticky="ew")
 
-        table_frame = ctk.CTkFrame(parent)
-        table_frame.grid(row=4, column=0, sticky="nsew", padx=12, pady=6)
+        table_card = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=12,
+                                  border_width=1, border_color=COLOR_CARD_BORDER)
+        table_card.grid(row=3, column=0, sticky="nsew", padx=4, pady=(0, 6))
+        table_card.grid_columnconfigure(0, weight=1)
+        table_card.grid_rowconfigure(1, weight=1)
+        ctk.CTkLabel(
+            table_card, text="Resultados capturados", font=ctk.CTkFont(size=13, weight="bold"), anchor="w",
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
+        table_frame = ctk.CTkFrame(table_card, fg_color="transparent")
+        table_frame.grid(row=1, column=0, sticky="nsew", padx=8, pady=(0, 8))
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(0, weight=1)
 
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("Treeview", rowheight=28, font=("Segoe UI", 10))
-        style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
+        style.configure("Treeview", rowheight=30, font=("Segoe UI", 10), background="#1e293b", fieldbackground="#1e293b", foreground="#e2e8f0")
+        style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"), background="#334155", foreground="#f8fafc")
+        style.map("Treeview", background=[("selected", COLOR_PRIMARY)])
 
         cols = ("id", "empresa", "email", "local", "fonte")
         self.tree = ttk.Treeview(table_frame, columns=cols, show="headings")
@@ -611,44 +596,53 @@ class CompanyEmailApp(ctk.CTk):
         self.tree.grid(row=0, column=0, sticky="nsew")
         sy.grid(row=0, column=1, sticky="ns")
 
-        activity_wrap = ctk.CTkFrame(parent, fg_color=ACTIVITY_BG, corner_radius=8, border_width=1, border_color=HUD_BORDER)
-        activity_wrap.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 6))
+        bottom = ctk.CTkFrame(parent, fg_color="transparent")
+        bottom.grid(row=4, column=0, sticky="ew", padx=4, pady=(0, 4))
+        bottom.grid_columnconfigure(0, weight=1)
+
+        activity_wrap = ctk.CTkFrame(bottom, fg_color=COLOR_CARD, corner_radius=12,
+                                     border_width=1, border_color=COLOR_CARD_BORDER)
+        activity_wrap.grid(row=0, column=0, sticky="ew", pady=(0, 8))
         activity_wrap.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
-            activity_wrap,
-            text="📋 ATIVIDADE EM TEMPO REAL — o que o software está a fazer agora",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            anchor="w",
-        ).grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 4))
+            activity_wrap, text="Atividade em tempo real", font=ctk.CTkFont(size=13, weight="bold"), anchor="w",
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(10, 4))
         self._activity_log = ctk.CTkTextbox(
-            activity_wrap,
-            height=140,
-            font=ctk.CTkFont(family="Consolas", size=10),
-            fg_color=ACTIVITY_BG,
-            text_color=ACTIVITY_FG,
-            wrap="word",
-            activate_scrollbars=True,
+            activity_wrap, height=110, font=ctk.CTkFont(family="Consolas", size=10),
+            fg_color=ACTIVITY_BG, text_color=ACTIVITY_FG, wrap="word", activate_scrollbars=True,
         )
-        self._activity_log.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 8))
-        self._activity_log.insert("1.0", "Pronto. Escolha uma base e clique Pré-visualizar ou INICIAR EXTRAÇÃO.\n")
+        self._activity_log.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 10))
+        self._activity_log.insert("1.0", "Pronto. Configure à esquerda e inicie quando SYS estiver READY.\n")
         self._activity_log.configure(state="disabled")
 
-        exp = ctk.CTkFrame(parent, fg_color="transparent")
-        exp.grid(row=6, column=0, sticky="ew", padx=12, pady=(4, 12))
-        ctk.CTkButton(exp, text="📥 CSV filtrado", command=self._export_filtered, width=120,
-                      fg_color="#1a5276", hover_color="#154360").pack(side="left", padx=(0, 6))
-        ctk.CTkButton(exp, text="📂 Guardar na pasta", command=self._export_to_folder, width=130,
-                      fg_color="#117a65", hover_color="#0e6251").pack(side="left", padx=(0, 6))
-        ctk.CTkButton(exp, text="📝 Emails .txt", command=self._export_emails_txt, width=100,
-                      fg_color="#7d6608", hover_color="#5d4c06").pack(side="left", padx=(0, 6))
-        ctk.CTkButton(exp, text="💾 SQLite (.db)", command=self._export_sqlite, width=120).pack(side="left", padx=(0, 6))
-        ctk.CTkButton(exp, text="📄 CSV completo", command=self._export_csv, width=120).pack(side="left", padx=(0, 6))
-        ctk.CTkButton(exp, text="📧 Só emails", command=self._export_emails_only, width=110,
-                      fg_color="#1a7a4c", hover_color="#145c38").pack(side="left", padx=(0, 6))
-        ctk.CTkButton(exp, text="📨 Marketing", command=self._export_marketing, width=100,
-                      fg_color="#6c3483", hover_color="#512664").pack(side="left", padx=(0, 6))
-        ctk.CTkButton(exp, text="🗑 Limpar", command=self._clear_results, width=100,
-                      fg_color="gray40").pack(side="right")
+        exp_card = ctk.CTkFrame(bottom, fg_color=COLOR_CARD, corner_radius=12,
+                                border_width=1, border_color=COLOR_CARD_BORDER)
+        exp_card.grid(row=1, column=0, sticky="ew")
+        exp_inner = ctk.CTkFrame(exp_card, fg_color="transparent")
+        exp_inner.pack(fill="x", padx=12, pady=10)
+        ctk.CTkLabel(exp_inner, text="Exportar resultados", font=ctk.CTkFont(size=13, weight="bold"), anchor="w").pack(fill="x", pady=(0, 8))
+        row1 = ctk.CTkFrame(exp_inner, fg_color="transparent")
+        row1.pack(fill="x", pady=(0, 4))
+        row2 = ctk.CTkFrame(exp_inner, fg_color="transparent")
+        row2.pack(fill="x")
+        for frame, items in (
+            (row1, [
+                ("CSV filtrado", self._export_filtered, COLOR_PRIMARY, COLOR_PRIMARY_HOVER),
+                ("Guardar na pasta", self._export_to_folder, COLOR_SUCCESS, COLOR_SUCCESS_HOVER),
+                ("Emails .txt", self._export_emails_txt, "#ca8a04", "#a16207"),
+                ("SQLite", self._export_sqlite, COLOR_ACCENT, COLOR_ACCENT_HOVER),
+            ]),
+            (row2, [
+                ("CSV completo", self._export_csv, COLOR_PRIMARY, COLOR_PRIMARY_HOVER),
+                ("Só emails", self._export_emails_only, COLOR_SUCCESS, COLOR_SUCCESS_HOVER),
+                ("Marketing", self._export_marketing, "#7c3aed", "#6d28d9"),
+                ("Limpar tabela", self._clear_results, "#64748b", "#475569"),
+            ]),
+        ):
+            for i, (label, cmd, fg, hover) in enumerate(items):
+                frame.grid_columnconfigure(i, weight=1)
+                ctk.CTkButton(frame, text=label, command=cmd, height=34,
+                              fg_color=fg, hover_color=hover).grid(row=0, column=i, padx=3, sticky="ew")
 
     def _build_sources_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
@@ -656,51 +650,57 @@ class CompanyEmailApp(ctk.CTk):
 
         top = ctk.CTkFrame(parent, fg_color="transparent")
         top.grid(row=0, column=0, sticky="ew", padx=12, pady=12)
-        ctk.CTkLabel(top, text="As suas bases de dados e sites personalizados",
-                     font=ctk.CTkFont(size=16, weight="bold")).pack(side="left")
-        ctk.CTkButton(top, text="➕ Adicionar Fonte", command=self._open_add_source_dialog).pack(side="right")
+        ctk.CTkLabel(top, text="Sites e bases personalizadas",
+                     font=ctk.CTkFont(size=18, weight="bold")).pack(side="left")
+        ctk.CTkButton(top, text="Adicionar fonte", fg_color=COLOR_PRIMARY, hover_color=COLOR_PRIMARY_HOVER,
+                      command=self._open_add_source_dialog).pack(side="right")
 
-        quick = ctk.CTkFrame(parent)
+        quick = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=12, border_width=1, border_color=COLOR_CARD_BORDER)
         quick.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
-        ctk.CTkLabel(quick, text="🌐 Novo site — cole o URL e adicione (usa anti-bot automaticamente)",
-                     anchor="w", font=ctk.CTkFont(size=12)).pack(fill="x", padx=10, pady=(8, 4))
+        ctk.CTkLabel(quick, text="Adicionar site rapidamente", anchor="w",
+                     font=ctk.CTkFont(size=13, weight="bold")).pack(fill="x", padx=12, pady=(10, 4))
+        ctk.CTkLabel(quick, text="Cole o URL — o anti-bot é aplicado automaticamente",
+                     anchor="w", font=ctk.CTkFont(size=11), text_color=COLOR_MUTED).pack(fill="x", padx=12)
         qrow = ctk.CTkFrame(quick, fg_color="transparent")
-        qrow.pack(fill="x", padx=10, pady=(0, 10))
+        qrow.pack(fill="x", padx=12, pady=(6, 12))
         self.quick_url_var = ctk.StringVar(value="https://")
         ctk.CTkEntry(qrow, textvariable=self.quick_url_var, placeholder_text="https://site.com/sitemap.xml").pack(
             side="left", fill="x", expand=True, padx=(0, 6)
         )
-        ctk.CTkButton(qrow, text="Adicionar e usar", width=120, command=self._quick_add_source).pack(side="right")
+        ctk.CTkButton(qrow, text="Adicionar e usar", width=120, fg_color=COLOR_SUCCESS,
+                      hover_color=COLOR_SUCCESS_HOVER, command=self._quick_add_source).pack(side="right")
 
         self.sources_list = ctk.CTkScrollableFrame(parent)
         self.sources_list.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
 
-        help_frame = ctk.CTkFrame(parent)
+        help_frame = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=12, border_width=1, border_color=COLOR_CARD_BORDER)
         help_frame.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
         ctk.CTkLabel(help_frame, text=ADD_SOURCE_HELP, justify="left", anchor="w",
-                     font=ctk.CTkFont(size=12), text_color="gray").pack(padx=12, pady=12)
+                     font=ctk.CTkFont(size=12), text_color=COLOR_MUTED).pack(padx=12, pady=12)
 
     def _build_guide_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
         parent.grid_rowconfigure(0, weight=1)
-        box = ctk.CTkTextbox(parent, font=ctk.CTkFont(family="Consolas", size=13), wrap="word")
+        box = ctk.CTkTextbox(parent, font=ctk.CTkFont(family="Segoe UI", size=13), wrap="word",
+                             fg_color=COLOR_CARD, border_width=1, border_color=COLOR_CARD_BORDER)
         box.grid(row=0, column=0, sticky="nsew", padx=12, pady=12)
         box.insert("1.0", GUIDE_TEXT)
         box.configure(state="disabled")
 
         btns = ctk.CTkFrame(parent, fg_color="transparent")
         btns.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 12))
-        ctk.CTkButton(btns, text="🚀 Iniciar teste rápido (50 empresas)",
-                      command=self._quick_start).pack(side="left", padx=4)
-        ctk.CTkButton(btns, text="➕ Adicionar fonte personalizada",
-                      command=self._open_add_source_dialog).pack(side="left", padx=4)
+        ctk.CTkButton(btns, text="Teste rápido (50 empresas PT)", fg_color=COLOR_SUCCESS,
+                      hover_color=COLOR_SUCCESS_HOVER, command=self._quick_start).pack(side="left", padx=4)
+        ctk.CTkButton(btns, text="Adicionar fonte personalizada", fg_color=COLOR_PRIMARY,
+                      hover_color=COLOR_PRIMARY_HOVER, command=self._open_add_source_dialog).pack(side="left", padx=4)
 
     def _stat_card(self, parent, label, value, col):
-        f = ctk.CTkFrame(parent)
-        f.grid(row=0, column=col, padx=4, pady=6, sticky="ew")
-        ctk.CTkLabel(f, text=label, font=ctk.CTkFont(size=11), text_color="gray").pack(pady=(6, 0))
-        lbl = ctk.CTkLabel(f, text=value, font=ctk.CTkFont(size=20, weight="bold"))
-        lbl.pack(pady=(0, 6))
+        f = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=10,
+                         border_width=1, border_color=COLOR_CARD_BORDER)
+        f.grid(row=0, column=col, padx=4, pady=2, sticky="ew")
+        ctk.CTkLabel(f, text=label, font=ctk.CTkFont(size=11), text_color=COLOR_MUTED).pack(pady=(8, 0))
+        lbl = ctk.CTkLabel(f, text=value, font=ctk.CTkFont(size=22, weight="bold"))
+        lbl.pack(pady=(0, 8))
         return lbl
 
     def _refresh_custom_sources(self) -> None:
@@ -806,7 +806,7 @@ class CompanyEmailApp(ctk.CTk):
             self._on_country_change()
             if label in self._source_map:
                 self.source_var.set(label)
-        self.tabview.set("📊 Extrair")
+        self.tabview.set(TAB_EXTRACT)
         self._set_status(f"Fonte '{source.name}' selecionada. Clique INICIAR EXTRAÇÃO.")
 
     def _delete_source(self, source_id: str) -> None:
@@ -995,7 +995,7 @@ class CompanyEmailApp(ctk.CTk):
         self._select_source_for_country("PT", "fiz_portugal")
         self.max_var.set("50")
         self.mode_var.set("limitado")
-        self.tabview.set("📊 Extrair")
+        self.tabview.set(TAB_EXTRACT)
         self._set_status("Configurado para teste rápido (50 empresas PT). Clique INICIAR EXTRAÇÃO!")
 
     def _resolve_source(self):
@@ -1128,6 +1128,27 @@ class CompanyEmailApp(ctk.CTk):
         self._privacy_hud.delete("1.0", "end")
         self._privacy_hud.insert("1.0", text)
         self._privacy_hud.configure(state="disabled")
+        summary = "A calibrar…"
+        for line in text.splitlines():
+            upper = line.upper()
+            if "SYS:" in upper or "STATUS:" in upper:
+                summary = line.strip()[:72]
+                break
+            if "IP REAL" in upper or "HIDE IP" in upper:
+                summary = line.strip()[:72]
+        if getattr(self, "_hud_summary", None):
+            self._hud_summary.configure(text=summary)
+
+    def _toggle_hud_panel(self) -> None:
+        if self._hud_expanded:
+            self._hud_body.pack_forget()
+            self._hud_toggle_btn.configure(text="Expandir")
+            self._hud_expanded = False
+        else:
+            self._hud_body.pack(fill="x")
+            self._privacy_hud.pack(fill="x", padx=10, pady=(4, 10))
+            self._hud_toggle_btn.configure(text="Ocultar")
+            self._hud_expanded = True
 
     def _build_hud_text(
         self,
@@ -1326,7 +1347,7 @@ class CompanyEmailApp(ctk.CTk):
         self.preview_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self.stat_status.configure(text="Pré-visualização...")
-        self.tabview.set("📊 Extrair")
+        self.tabview.set(TAB_EXTRACT)
         self._refresh_table()
         self._set_status(f"🔍 A captar até {preview_n} registos (sem gravar ficheiros)...", 0.0)
         threading.Thread(target=self._run_extraction, daemon=True).start()
@@ -1344,7 +1365,7 @@ class CompanyEmailApp(ctk.CTk):
         self.preview_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self.stat_status.configure(text="A extrair...")
-        self.tabview.set("📊 Extrair")
+        self.tabview.set(TAB_EXTRACT)
         threading.Thread(target=self._run_extraction, daemon=True).start()
 
     def _stop_extraction(self) -> None:
