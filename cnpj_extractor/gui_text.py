@@ -11,6 +11,7 @@ PASSO 1 — ESCOLHER O PAÍS
 Na barra lateral, escolha:
   • PT = Portugal
   • BR = Brasil
+  • ES = Espanha (Empresite, Páginas Amarillas, etc.)
   • OUTRO = qualquer outro país/site
 
 
@@ -20,6 +21,8 @@ Fontes pré-definidas:
   • Diretório FIZ (Portugal) — ~490.000 empresas
   • Receita Federal (Brasil) — ~67 milhões de empresas
   • DadosBrasil API (Brasil) — consultas rápidas
+  • Empresite (Espanha) — ~4 milhões de empresas via sitemap
+  • Separador «Espanha» — 30+ diretórios (eInforma, Axesor, Kompass…)
 
 Fontes personalizadas (qualquer site):
   • Vá ao separador "Minhas Fontes"
@@ -73,7 +76,18 @@ Na barra lateral pode escolher:
   • Vários códigos: 62, 47, 86 — prefixo funciona (62 inclui 6201, 6202…)
 
 
-PASSO 6 — INICIAR E EXPORTAR
+PASSO 6 — PRÉ-VISUALIZAR (NOVO v2.8)
+-------------------------------------
+Antes de gravar ficheiros, pode ver o que o software captou:
+
+  1. Configure país, fonte e filtros
+  2. Clique «🔍 Pré-visualizar» (número = quantos registos ver, ex: 25)
+  3. Os emails aparecem na TABELA do separador «Extrair»
+  4. NÃO grava CSV/SQLite na pré-visualização
+  5. Se estiver OK → clique «▶ Iniciar Extração» para extração completa
+
+
+PASSO 7 — INICIAR E EXPORTAR
 -----------------------------
   1. Clique "▶ Iniciar Extração"
   2. Veja os resultados na tabela
@@ -104,6 +118,15 @@ Portugal (teste 2 min):
 
 Portugal (completo):
   País: PT | Fonte: FIZ | Modo: automático | Limite: 0
+
+Espanha (teste rápido):
+  Separador «Espanha» → Empresite → Usar
+  Pré-visualizar: 25 → ver emails no ecrã
+  Depois: Iniciar Extração com limite 100
+
+Espanha (completo):
+  País: ES | Fonte: Empresite | Província: Madrid (opcional)
+  Modo: automático | Anti-Bot: ON | Limite: 0
 
 Site qualquer (sitemap):
   Minhas Fontes → + Adicionar → Tipo: Sitemap

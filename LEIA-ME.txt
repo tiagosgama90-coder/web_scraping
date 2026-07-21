@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.7 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.8 — LEIA-ME
 ================================================================================
 
 INSTALACAO
@@ -14,26 +14,38 @@ https://github.com/tiagosgama90-coder/web_scraping/releases/latest
 
 O QUE FAZ
 ---------
-- Extrai emails de empresas (Brasil, Portugal, qualquer site)
+- Extrai emails de empresas (Brasil, Portugal, Espanha, qualquer site)
+- PRE-VISUALIZACAO: ve emails no ecra ANTES de gravar ficheiros
 - Limpa emails invalidos, duplicados e lixo (noreply, etc.)
-- Filtra por SETOR: CNAE (BR), CAE/ISIC (PT), codigos internacionais
+- Filtra por SETOR: CNAE (BR), CAE/ISIC (PT/ES), codigos internacionais
 - Grava CSV, TXT e SQLite ENQUANTO extrai
 - Divide em ficheiros de 1000 linhas (abre no Excel)
 - Brasil: extrai UF por UF (SP, RJ, MG...) em pastas separadas
+- Espanha: 30+ diretorios (Empresite, Paginas Amarillas, Kompass...)
 
-FILTRO POR SETOR (NOVO v2.7)
+PRE-VISUALIZAR (NOVO v2.8)
 ----------------------------
+1. Configure Pais e Fonte na barra lateral
+2. Clique "Pre-visualizar" (numero = quantos registos ver, ex: 25)
+3. Veja os emails na TABELA do separador "Extrair"
+4. NAO grava ficheiros na pre-visualizacao
+5. Se estiver OK -> clique "Iniciar Extracao" para gravar tudo
+
+ESPANHA (NOVO v2.8)
+-------------------
+- Separador "Espanha" -> escolha fonte -> "Usar"
+- Recomendado: Empresite (~4M empresas, sitemap automatico)
+- Filtro opcional: Provincia (Madrid, Barcelona, Valencia...)
+- Anti-Bot: manter ATIVO (Empresite usa Cloudflare)
+
+FILTRO POR SETOR
+----------------
 Campo "CNAE / CAE / ISIC" na barra lateral:
 
   Brasil:   6202300  ou  62  (tecnologia/TI)
   Portugal: 6201     ou  62  (programacao informatica)
+  Espanha:  6201     ou  62  (quando disponivel na ficha)
   Varios:   62, 47, 86  (separados por virgula)
-
-  Prefixo funciona: 62 inclui 6201, 6202, 6202300...
-
-  Combina com UF ou distrito:
-    SP + 62 = empresas de TI em Sao Paulo
-    Lisboa + 62 = empresas de TI em Lisboa
 
 CODIGOS COMUNS
 --------------
@@ -44,9 +56,10 @@ CODIGOS COMUNS
 INICIO RAPIDO
 -------------
 1. Abra o programa
-2. Escolha Pais, Fonte e Setor (opcional) na barra lateral
-3. Clique "Iniciar Extracao"
-4. Resultados em: Documentos\CompanyEmailExtractor\export\
+2. Escolha Pais, Fonte e Setor (opcional)
+3. Pre-visualize 25 registos (opcional mas recomendado)
+4. Clique "Iniciar Extracao"
+5. Resultados em: Documentos\CompanyEmailExtractor\export\
 
 BRASIL (MILHOES DE EMAILS)
 --------------------------

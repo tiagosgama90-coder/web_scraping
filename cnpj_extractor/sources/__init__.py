@@ -3,10 +3,13 @@ from __future__ import annotations
 from cnpj_extractor.sources.base import BaseSource
 from cnpj_extractor.sources.dadosbrasil_api import DadosBrasilApiSource
 from cnpj_extractor.sources.dadosbrasil_scraper import DadosBrasilScraperSource
+from cnpj_extractor.sources.empresite_spain import EmpresiteSpainSource
 from cnpj_extractor.sources.fiz_portugal import FizPortugalSource
 from cnpj_extractor.sources.receita_federal import ReceitaFederalSource
 from cnpj_extractor.sources.sitemap_generic import GenericSitemapSource
 from cnpj_extractor.sources.website_scraper import WebScraperSource
+
+from cnpj_extractor.spain_catalog import SPAIN_DIRECTORY_CATALOG, build_spain_sources
 
 SOURCES_BR: dict[str, BaseSource] = {
     "receita_federal": ReceitaFederalSource(),
@@ -19,12 +22,14 @@ SOURCES_PT: dict[str, BaseSource] = {
     "sitemap_generico": GenericSitemapSource(),
 }
 
+SOURCES_ES: dict[str, BaseSource] = build_spain_sources()
+
 SOURCES_OUTRO: dict[str, BaseSource] = {
     "sitemap_generico": GenericSitemapSource(),
     "website_scraper": WebScraperSource(),
 }
 
-SOURCES: dict[str, BaseSource] = {**SOURCES_BR, **SOURCES_PT, **SOURCES_OUTRO}
+SOURCES: dict[str, BaseSource] = {**SOURCES_BR, **SOURCES_PT, **SOURCES_ES, **SOURCES_OUTRO}
 
 COUNTRIES = {
     "BR": {
@@ -38,6 +43,12 @@ COUNTRIES = {
         "flag": "🇵🇹",
         "sources": SOURCES_PT,
         "tax_id_label": "NIPC",
+    },
+    "ES": {
+        "name": "Espanha",
+        "flag": "🇪🇸",
+        "sources": SOURCES_ES,
+        "tax_id_label": "CIF/NIF",
     },
     "OUTRO": {
         "name": "Outro / Qualquer site",
@@ -78,12 +89,15 @@ __all__ = [
     "SOURCES",
     "SOURCES_BR",
     "SOURCES_PT",
+    "SOURCES_ES",
     "COUNTRIES",
+    "SPAIN_DIRECTORY_CATALOG",
     "COMMERCIAL_SOURCES_INFO",
     "ReceitaFederalSource",
     "DadosBrasilApiSource",
     "DadosBrasilScraperSource",
     "FizPortugalSource",
+    "EmpresiteSpainSource",
     "GenericSitemapSource",
     "WebScraperSource",
 ]
