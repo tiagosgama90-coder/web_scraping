@@ -9,6 +9,9 @@ on:
       - 'cnpj_extractor/**'
       - 'requirements.txt'
       - 'company_email_extractor.spec'
+      - 'installer/setup.iss'
+      - 'COMO_USAR.md'
+      - 'LEIA-ME.txt'
       - '.github/workflows/build-windows.yml'
   workflow_dispatch:
 
