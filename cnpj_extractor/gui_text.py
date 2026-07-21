@@ -75,13 +75,28 @@ PASSO 4 — MODO DE EXTRAÇÃO
   • Automático = extração completa (pode demorar horas)
 
 
-PASSO 5 — FILTROS E CAMPOS
+PASSO 5 — PRIVACIDADE (SUA ESCOLHA)
+------------------------------------
+Na secção «🔒 Privacidade — ligação à internet»:
+
+  • Direta (IP normal) — ligação normal, predefinição
+  • Proxy / VPN (ocultar IP) — tráfego pela VPN que VOCÊ configurar
+
+IMPORTANTE: O software NÃO inclui VPN gratuita.
+  1. Instale uma VPN à parte (NordVPN, Mullvad, ProtonVPN…)
+  2. Nas definições da VPN, procure proxy SOCKS5
+  3. Escolha «Proxy / VPN» e cole: socks5://127.0.0.1:1080
+
+VPN gratuitas existem (ProtonVPN free) mas com limites.
+VPNs pagas são mais fiáveis para uso regular.
+
+
+PASSO 6 — FILTROS E CAMPOS
 ---------------------------
 Na barra lateral pode escolher:
   • Campos a exportar (email, empresa, cnpj, telefone, uf, etc.)
   • Obrigatório ter e-mail / telefone / CNPJ
   • Validar domínio DNS/MX (verifica se o domínio tem servidor de email)
-  • 🔒 Proxy / VPN — ocultar IP nas extrações de sites (v2.10)
   • Guardar CSV filtrado automaticamente ao concluir
   • Gravar ficheiros ENQUANTO extrai (não espera pelo fim)
   • SQLite em tempo real para volumes enormes (10M+)
@@ -90,8 +105,8 @@ Na barra lateral pode escolher:
   • Vários códigos: 62, 47, 86 — prefixo funciona (62 inclui 6201, 6202…)
 
 
-PASSO 6 — PRÉ-VISUALIZAR (NOVO v2.8)
--------------------------------------
+PASSO 7 — PRÉ-VISUALIZAR
+-------------------------
 Antes de gravar ficheiros, pode ver o que o software captou:
 
   1. Configure país, fonte e filtros
@@ -101,7 +116,7 @@ Antes de gravar ficheiros, pode ver o que o software captou:
   5. Se estiver OK → clique «▶ Iniciar Extração» para extração completa
 
 
-PASSO 7 — INICIAR E EXPORTAR
+PASSO 8 — INICIAR E EXPORTAR
 -----------------------------
   1. Clique "▶ Iniciar Extração"
   2. Veja os resultados na tabela

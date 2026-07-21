@@ -1,51 +1,34 @@
-# Company Email Extractor v2.9
+# Company Email Extractor v2.11
 
-Software **nativo Windows** para extrair emails e dados de empresas de **19 países** e **qualquer site**.
+Software **nativo Windows** para extrair emails e dados de empresas de **19 países**.
 
-**Janela própria — sem browser, sem terminal, sem configurar Python.**
-
----
-
-## Download Windows (Setup)
-
-**https://github.com/tiagosgama90-coder/web_scraping/releases/latest**
-
-Ficheiro: `CompanyEmailExtractor-Setup.exe`
+**Download:** https://github.com/tiagosgama90-coder/web_scraping/releases/latest
 
 ---
 
-## Países suportados (v2.9)
+## O que faz (resumo)
 
-| Tipo | Países |
-|------|--------|
-| **Dados oficiais / principais** | 🇧🇷 Brasil (Receita Federal), 🇵🇹 Portugal (FIZ) |
-| **Diretórios empresariais** | 🇪🇸 ES, 🇫🇷 FR, 🇩🇪 DE, 🇮🇹 IT, 🇬🇧 GB, 🇲🇽 MX, 🇦🇷 AR, 🇨🇴 CO, 🇨🇱 CL, 🇵🇪 PE, 🇺🇸 US, 🇨🇦 CA, 🇳🇱 NL, 🇧🇪 BE, 🇵🇱 PL, 🇷🇴 RO |
-| **Personalizado** | 🌍 Qualquer site (sitemap/URL) |
-
-Separador **🌍 Diretórios** — lista todas as bases por país com botão **Usar**.
-
----
-
-## Funcionalidades
-
+- Extrai emails de **Brasil** (Receita Federal), **Portugal** (FIZ), **16 países** com diretórios e sites personalizados
 - **Pré-visualização** — vê emails no ecrã antes de gravar
-- Gravação em tempo real (CSV, TXT, SQLite)
-- Ficheiros de 1000 linhas para Excel
-- Brasil: extração UF por UF
-- Anti-bot (Cloudflare, Playwright)
-- Filtro por setor (CNAE, CAE, NACE, NAICS…)
+- Grava **CSV**, **TXT**, **SQLite** enquanto extrai
+- **Privacidade**: escolha **Ligação Direta** ou **Proxy/VPN** (sua VPN — não incluída)
+- Anti-bot, filtros por setor, UF por UF (Brasil), 1000 linhas/ficheiro para Excel
+
+**Guia completo:** [COMO_USAR.md](COMO_USAR.md) (incluído no instalador)
 
 ---
 
-## Documentação
+## VPN — é gratuita?
 
-| Ficheiro | Conteúdo |
-|----------|----------|
-| **[COMO_USAR.md](COMO_USAR.md)** | Guia completo v2.9 |
-| **[LEIA-ME.txt](LEIA-ME.txt)** | Resumo (incluído no instalador) |
+**Não.** O software não inclui VPN. Oferece duas opções:
+
+| Modo | Descrição |
+|------|-----------|
+| **Direta** | IP normal da sua internet (predefinição) |
+| **Proxy/VPN** | Encaminha pelo proxy da **sua** VPN (configure nas definições da VPN) |
+
+VPNs gratuitas existem (ex: ProtonVPN free) com limites. VPNs pagas são mais fiáveis.
 
 ---
 
-## Licença
-
-Use os dados em conformidade com **LGPD**, **RGPD** e leis locais de cada país.
+*Use os dados em conformidade com LGPD e RGPD.*

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.10."""
+"""Aplicação desktop nativa — Company Email Extractor v2.11."""
 
 from __future__ import annotations
 
@@ -73,7 +73,10 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.10.0"
+APP_VERSION = "2.11.0"
+
+CONNECTION_DIRECT = "Direta (IP normal)"
+CONNECTION_PROXY = "Proxy / VPN (ocultar IP)"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -331,30 +334,42 @@ class CompanyEmailApp(ctk.CTk):
             variable=self.antibot_var,
         ).grid(row=20, column=0, padx=20, pady=(6, 2), sticky="w")
 
-        proxy_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        proxy_frame.grid(row=21, column=0, padx=20, pady=(0, 4), sticky="ew")
-        self.proxy_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(
-            proxy_frame,
-            text="🔒 Proxy / VPN (ocultar IP)",
-            variable=self.proxy_var,
-            font=ctk.CTkFont(size=11),
-        ).pack(anchor="w")
-        self.proxy_url_var = ctk.StringVar(value="")
-        ctk.CTkEntry(
-            proxy_frame,
-            textvariable=self.proxy_url_var,
-            placeholder_text="socks5://user:pass@host:port",
-            font=ctk.CTkFont(size=11),
-        ).pack(fill="x", pady=(4, 0))
+        privacy = ctk.CTkFrame(sidebar, fg_color=("gray92", "gray18"), corner_radius=8)
+        privacy.grid(row=21, column=0, padx=16, pady=(0, 6), sticky="ew")
         ctk.CTkLabel(
-            proxy_frame,
-            text="Use o proxy da sua VPN (NordVPN, Mullvad, etc.)",
+            privacy,
+            text="🔒 Privacidade — ligação à internet",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            anchor="w",
+        ).pack(fill="x", padx=10, pady=(8, 4))
+        self.connection_mode_var = ctk.StringVar(value=CONNECTION_DIRECT)
+        ctk.CTkOptionMenu(
+            privacy,
+            variable=self.connection_mode_var,
+            values=[CONNECTION_DIRECT, CONNECTION_PROXY],
+            command=self._on_connection_mode_change,
+            width=240,
+        ).pack(fill="x", padx=10, pady=(0, 4))
+        self.proxy_var = ctk.BooleanVar(value=False)
+        self.proxy_url_var = ctk.StringVar(value="")
+        self.proxy_entry = ctk.CTkEntry(
+            privacy,
+            textvariable=self.proxy_url_var,
+            placeholder_text="socks5://127.0.0.1:1080",
+            font=ctk.CTkFont(size=11),
+            state="disabled",
+        )
+        self.proxy_entry.pack(fill="x", padx=10, pady=(0, 4))
+        self._proxy_hint = ctk.CTkLabel(
+            privacy,
+            text="Direta: usa o seu IP. Proxy: tráfego pela VPN (configure abaixo).",
             font=ctk.CTkFont(size=10),
             text_color="gray",
             wraplength=250,
+            justify="left",
             anchor="w",
-        ).pack(anchor="w")
+        )
+        self._proxy_hint.pack(fill="x", padx=10, pady=(0, 8))
 
         paths = ctk.CTkFrame(sidebar, fg_color="transparent")
         paths.grid(row=22, column=0, padx=20, sticky="ew")
@@ -893,8 +908,22 @@ class CompanyEmailApp(ctk.CTk):
                 row.get("email", ""), row.get("municipio", "")[:20], row.get("fonte", "")[:25],
             ))
 
+    def _on_connection_mode_change(self, choice: str) -> None:
+        use_proxy = choice == CONNECTION_PROXY
+        self.proxy_var.set(use_proxy)
+        if use_proxy:
+            self.proxy_entry.configure(state="normal")
+            self._proxy_hint.configure(
+                text="Cole o proxy da SUA VPN (NordVPN, Mullvad…). O software NÃO inclui VPN gratuita.",
+            )
+        else:
+            self.proxy_entry.configure(state="disabled")
+            self._proxy_hint.configure(
+                text="Ligação direta — os sites veem o IP da sua internet.",
+            )
+
     def _validate_proxy_settings(self) -> bool:
-        if not self.proxy_var.get():
+        if self.connection_mode_var.get() != CONNECTION_PROXY:
             return True
         raw = self.proxy_url_var.get().strip()
         if not raw:
@@ -917,7 +946,7 @@ class CompanyEmailApp(ctk.CTk):
         return True
 
     def _activate_proxy_for_extraction(self) -> None:
-        if self.proxy_var.get():
+        if self.connection_mode_var.get() == CONNECTION_PROXY:
             url = normalize_proxy_url(self.proxy_url_var.get())
             set_active_proxy(url)
             self.after(

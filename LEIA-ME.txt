@@ -1,83 +1,103 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.10 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.11 — LEIA-ME
 ================================================================================
+
+DOWNLOAD
+--------
+https://github.com/tiagosgama90-coder/web_scraping/releases/latest
+Ficheiro: CompanyEmailExtractor-Setup.exe
 
 INSTALACAO
 ----------
 1. Execute CompanyEmailExtractor-Setup.exe
 2. Seguinte -> Instalar -> Concluir
-3. Abra pelo Menu Iniciar ou atalho no Ambiente de Trabalho
+3. Abra pelo Menu Iniciar
 
-DOWNLOAD ATUALIZADO
--------------------
-https://github.com/tiagosgama90-coder/web_scraping/releases/latest
+================================================================================
+  TUDO O QUE O PROGRAMA FAZ (RESUMO)
+================================================================================
 
-O QUE FAZ
----------
-- Extrai emails de empresas em 19 PAISES + sites personalizados
-- Brasil: Receita Federal (~67M empresas, dados oficiais)
-- Portugal: FIZ (~490k empresas)
-- 16 paises com diretorios: ES, FR, DE, IT, GB, MX, AR, CO, CL, PE, US, CA, NL, BE, PL, RO
-- PRE-VISUALIZACAO: ve emails no ecra ANTES de gravar ficheiros
-- Grava CSV, TXT e SQLite ENQUANTO extrai
-- Divide em ficheiros de 1000 linhas (abre no Excel)
+EXTRACAO
+  1. Extrai emails e dados de empresas (19 paises + sites)
+  2. Brasil: Receita Federal (~67M empresas, dados oficiais)
+  3. Portugal: FIZ (~490k empresas)
+  4. 16 paises: ES, FR, DE, IT, GB, MX, AR, CO, CL, PE, US, CA, NL, BE, PL, RO
+  5. Sites personalizados (URL, sitemap, lista de links)
+  6. Separador "Diretorios" com todas as fontes por pais
 
-PAISES DISPONIVEIS (v2.9)
--------------------------
-  PT  Portugal (FIZ)          BR  Brasil (Receita Federal)
-  ES  Espanha (Empresite)     FR  Franca (Societe.com)
-  DE  Alemanha (Gelbe Seiten) IT  Italia (Pagine Gialle)
-  GB  Reino Unido (Yell)      MX  Mexico (Seccion Amarilla)
-  AR  Argentina               CO  Colombia
-  CL  Chile                   PE  Peru
-  US  Estados Unidos          CA  Canada
-  NL  Paises Baixos           BE  Belgica
-  PL  Polonia                 RO  Romenia
-  OUTRO = qualquer site
+LIMPEZA
+  7. Remove emails invalidos, duplicados e lixo (noreply, etc.)
+  8. Normaliza para minusculas
 
-SEPARADOR "DIRETORIOS"
-----------------------
-1. Abra o separador "Diretorios"
-2. Escolha o PAIS no menu
-3. Clique "Usar" na fonte desejada
-4. "Pre-visualizar" (25) -> ve emails na tabela
-5. "Iniciar Extracao" -> grava ficheiros
+FILTROS
+  9. Obrigatorio ter email / telefone / CNPJ
+  10. Filtro por setor (CNAE, CAE, NACE, NAICS)
+  11. Brasil: UF, empresas ativas, UF por UF
+  12. Portugal: distrito | Outros paises: regiao
 
 PRE-VISUALIZAR
---------------
-- Configure Pais e Fonte
-- Clique "Pre-visualizar" (numero = amostra, ex: 25)
-- Veja emails na TABELA (separador Extrair)
-- NAO grava ficheiros na pre-visualizacao
-- Se OK -> "Iniciar Extracao"
+  13. Ve emails no ecra ANTES de gravar ficheiros
+  14. Botao "Pre-visualizar" (amostra, ex: 25)
+  15. Depois: "Iniciar Extracao" para gravar tudo
 
-PROXY / VPN — OCULTAR IP (v2.10)
---------------------------------
-1. Ative na barra lateral: "Proxy / VPN (ocultar IP)"
-2. Cole o endereco do proxy da sua VPN, ex:
-     socks5://127.0.0.1:1080
-     http://127.0.0.1:8080
-3. Muitas VPNs fornecem proxy local — veja as definicoes da VPN
-4. O trafego de extracao passa pelo proxy (o site ve o IP da VPN)
-5. Nota: nao substitui responsabilidade legal no uso dos dados
+GRAVACAO
+  16. Grava CSV, TXT e SQLite ENQUANTO extrai
+  17. Ficheiros de 1000 linhas (abre no Excel)
+  18. Brasil: pasta separada por UF (SP, RJ, MG...)
 
-INICIO RAPIDO
--------------
+PRIVACIDADE (SUA ESCOLHA)
+  19. "Direta (IP normal)" — ligacao normal (predefinido)
+  20. "Proxy / VPN (ocultar IP)" — trafego pela SUA VPN
+  21. O software NAO inclui VPN gratuita — voce configura o proxy
+
+ANTI-BOT
+  22. Contorna Cloudflare e protecoes (Playwright)
+  23. Ativo por defeito
+
+EXPORTACAO
+  24. CSV filtrado, emails .txt, SQLite, marketing
+  25. NAO envia emails — so extrai e exporta
+
+O QUE NAO FAZ
+  26. Nao recolhe os seus dados pessoais
+  27. Nao inclui VPN gratuita
+  28. Nao garante 100% de emails em todos os sites
+
+================================================================================
+  VPN / PROXY — E GRATUITA?
+================================================================================
+
+NAO. O software NAO inclui VPN.
+
+O que faz:
+  - Modo "Direta": usa o IP normal da sua internet
+  - Modo "Proxy/VPN": encaminha pelo proxy que VOCE colar
+
+VPN e um servico SEPARADO (app que instala no PC):
+  - Gratuitas existem (ProtonVPN free, etc.) mas com limites
+  - Pagas (NordVPN, Mullvad...) sao mais fiaveis
+  - Muitas VPNs dao proxy SOCKS5 nas definicoes
+
+Como usar:
+  1. Instale e ligue a SUA VPN (app separada)
+  2. No software: Privacidade -> "Proxy / VPN"
+  3. Cole: socks5://127.0.0.1:1080 (exemplo)
+  4. Inicie extracao
+
+================================================================================
+  INICIO RAPIDO
+================================================================================
+
 1. Abra o programa
-2. Escolha Pais e Fonte (ou Diretorios -> Usar)
-3. Pre-visualize 25 registos (recomendado)
-4. Clique "Iniciar Extracao"
-5. Resultados: Documentos\CompanyEmailExtractor\export\
+2. Pais: PT | Fonte: FIZ | Limite: 50
+3. Privacidade: Direta (ou Proxy se tiver VPN)
+4. Pre-visualizar (25) -> ver emails
+5. Iniciar Extracao
+6. Ficheiros em: Documentos\CompanyEmailExtractor\export\
 
-BRASIL (MILHOES)
-----------------
-  Pais: BR | Fonte: Receita Federal | UF: Todos
-  Ative: Extrair UF por UF, Gravar enquanto extrai
-  Modo: automatico | Limite: 0
+GUIA COMPLETO: COMO_USAR.md (nesta pasta apos instalar)
+CODIGO: https://github.com/tiagosgama90-coder/web_scraping
 
-GUIA COMPLETO: COMO_USAR.md (nesta pasta)
-SUPORTE: https://github.com/tiagosgama90-coder/web_scraping
-
-AVISO LEGAL: Use em conformidade com LGPD/RGPD.
+AVISO: Use em conformidade com LGPD/RGPD. Nao faca spam.
 
 ================================================================================
