@@ -90,7 +90,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.15.0"
+APP_VERSION = "2.15.1"
 
 HUD_BG = "#060b14"
 HUD_FG = "#00a8ff"
