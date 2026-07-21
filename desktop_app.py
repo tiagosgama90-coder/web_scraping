@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.15."""
+"""Aplicação desktop nativa — Company Email Extractor v2.16."""
 
 from __future__ import annotations
 
@@ -73,9 +73,7 @@ from cnpj_extractor.sector_filters import (
 from cnpj_extractor.country_catalogs import (
     CATALOG_COUNTRY_CODES,
     COUNTRY_CATALOG_REGISTRY,
-    catalog_source_key_for_country,
     find_catalog_entry,
-    get_country_catalog,
 )
 from cnpj_extractor.sources import COUNTRIES, COUNTRY_MENU_ORDER
 from cnpj_extractor.sources.custom_adapter import CustomSourceAdapter
@@ -90,7 +88,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.15.1"
+APP_VERSION = "2.16.0"
 
 HUD_BG = "#060b14"
 HUD_FG = "#00a8ff"
@@ -100,7 +98,6 @@ HUD_FONT = ("Consolas", 12)
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
-BUILTIN_PREFIX = "★ "
 CUSTOM_PREFIX = "✦ "
 SPECIAL_SOURCES = {
     "__scraper__": "🌐 Scraper Universal (qualquer URL)",
@@ -260,16 +257,17 @@ class CompanyEmailApp(ctk.CTk):
         # Sidebar
         sidebar = ctk.CTkFrame(self, width=300, corner_radius=0)
         sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_rowconfigure(22, weight=1)
+        sidebar.grid_columnconfigure(0, weight=1)
+        sidebar.grid_rowconfigure(7, weight=1)
 
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
         )
         ctk.CTkLabel(sidebar, text="BR • PT • ES • FR • DE • IT • +12 países", font=ctk.CTkFont(size=11), text_color="gray").grid(
-            row=1, column=0, padx=20, pady=(0, 12), sticky="w"
+            row=1, column=0, padx=20, pady=(0, 8), sticky="w"
         )
 
-        ctk.CTkLabel(sidebar, text="País", anchor="w").grid(row=2, column=0, padx=20, sticky="ew")
+        ctk.CTkLabel(sidebar, text="País (filtros)", anchor="w").grid(row=2, column=0, padx=20, sticky="ew")
         self.country_var = ctk.StringVar(value="PT")
         ctk.CTkOptionMenu(
             sidebar,
@@ -277,59 +275,77 @@ class CompanyEmailApp(ctk.CTk):
             values=COUNTRY_MENU_ORDER,
             command=self._on_country_change,
             width=260,
-        ).grid(row=3, column=0, padx=20, pady=(4, 10))
+        ).grid(row=3, column=0, padx=20, pady=(4, 6))
 
-        ctk.CTkLabel(sidebar, text="Fonte de dados", anchor="w").grid(row=4, column=0, padx=20, sticky="ew")
+        ctk.CTkLabel(sidebar, text="Base de dados / Diretório", anchor="w",
+                     font=ctk.CTkFont(size=13, weight="bold")).grid(row=4, column=0, padx=20, sticky="ew")
         self.source_var = ctk.StringVar(value="")
-        self.source_menu = ctk.CTkOptionMenu(sidebar, variable=self.source_var, width=260,
-                                             command=self._on_source_selected)
-        self.source_menu.grid(row=5, column=0, padx=20, pady=(4, 10))
+        self.source_menu = ctk.CTkOptionMenu(
+            sidebar,
+            variable=self.source_var,
+            width=260,
+            command=self._on_source_selected,
+            dynamic_resizing=False,
+        )
+        self.source_menu.grid(row=5, column=0, padx=20, pady=(4, 2))
+        ctk.CTkLabel(
+            sidebar,
+            text="Todas as bases por país — escolha aqui (FIZ, Empresite, Receita…)",
+            font=ctk.CTkFont(size=10),
+            text_color="gray",
+            wraplength=260,
+            justify="left",
+        ).grid(row=6, column=0, padx=20, pady=(0, 6), sticky="w")
 
-        ctk.CTkLabel(sidebar, text="Modo", anchor="w").grid(row=6, column=0, padx=20, sticky="ew")
+        sidebar_scroll = ctk.CTkScrollableFrame(sidebar, label_text="Opções avançadas")
+        sidebar_scroll.grid(row=7, column=0, padx=12, pady=(0, 6), sticky="nsew")
+        sidebar_scroll.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(sidebar_scroll, text="Modo", anchor="w").pack(fill="x", padx=4)
         self.mode_var = ctk.StringVar(value="limitado")
-        ctk.CTkOptionMenu(sidebar, variable=self.mode_var,
-                          values=["limitado", "automatico"], width=260).grid(row=7, column=0, padx=20, pady=(4, 10))
+        ctk.CTkOptionMenu(sidebar_scroll, variable=self.mode_var,
+                          values=["limitado", "automatico"], width=260).pack(fill="x", padx=4, pady=(4, 10))
 
-        ctk.CTkLabel(sidebar, text="Limite (0 = sem limite)", anchor="w").grid(row=8, column=0, padx=20, sticky="ew")
+        ctk.CTkLabel(sidebar_scroll, text="Limite (0 = sem limite)", anchor="w").pack(fill="x", padx=4)
         self.max_var = ctk.StringVar(value="100")
-        ctk.CTkEntry(sidebar, textvariable=self.max_var, width=260).grid(row=9, column=0, padx=20, pady=(4, 10))
+        ctk.CTkEntry(sidebar_scroll, textvariable=self.max_var, width=260).pack(fill="x", padx=4, pady=(4, 10))
 
-        self.filter_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
-        self.filter_frame.grid(row=10, column=0, padx=20, sticky="ew")
+        self.filter_frame = ctk.CTkFrame(sidebar_scroll, fg_color="transparent")
+        self.filter_frame.pack(fill="x", padx=4)
 
-        self.fields_scroll = ctk.CTkScrollableFrame(sidebar, height=110, label_text="Campos a exportar")
-        self.fields_scroll.grid(row=11, column=0, padx=20, pady=(4, 4), sticky="ew")
+        self.fields_scroll = ctk.CTkScrollableFrame(sidebar_scroll, height=100, label_text="Campos a exportar")
+        self.fields_scroll.pack(fill="x", padx=4, pady=(4, 4))
         self.field_vars: dict[str, ctk.BooleanVar] = {}
         self._build_field_selector()
 
         self.only_email_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(sidebar, text="Obrigatório ter e-mail", variable=self.only_email_var).grid(
-            row=12, column=0, padx=20, pady=2, sticky="w"
+        ctk.CTkCheckBox(sidebar_scroll, text="Obrigatório ter e-mail", variable=self.only_email_var).pack(
+            fill="x", padx=4, pady=2
         )
         self.require_phone_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(sidebar, text="Obrigatório ter telefone", variable=self.require_phone_var).grid(
-            row=13, column=0, padx=20, pady=2, sticky="w"
+        ctk.CTkCheckBox(sidebar_scroll, text="Obrigatório ter telefone", variable=self.require_phone_var).pack(
+            fill="x", padx=4, pady=2
         )
         self.require_cnpj_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(sidebar, text="Obrigatório ter CNPJ/NIPC", variable=self.require_cnpj_var).grid(
-            row=14, column=0, padx=20, pady=2, sticky="w"
+        ctk.CTkCheckBox(sidebar_scroll, text="Obrigatório ter CNPJ/NIPC", variable=self.require_cnpj_var).pack(
+            fill="x", padx=4, pady=2
         )
         self.mx_validate_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(
-            sidebar,
+            sidebar_scroll,
             text="🌐 Validar domínio DNS/MX",
             variable=self.mx_validate_var,
-        ).grid(row=15, column=0, padx=20, pady=2, sticky="w")
+        ).pack(fill="x", padx=4, pady=2)
 
         self.auto_export_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
-            sidebar,
+            sidebar_scroll,
             text="📥 Guardar CSV filtrado ao concluir",
             variable=self.auto_export_var,
-        ).grid(row=16, column=0, padx=20, pady=2, sticky="w")
+        ).pack(fill="x", padx=4, pady=2)
 
-        chunk_row = ctk.CTkFrame(sidebar, fg_color="transparent")
-        chunk_row.grid(row=17, column=0, padx=20, pady=(2, 4), sticky="ew")
+        chunk_row = ctk.CTkFrame(sidebar_scroll, fg_color="transparent")
+        chunk_row.pack(fill="x", padx=4, pady=(2, 4))
         self.chunk_export_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             chunk_row,
@@ -343,29 +359,29 @@ class CompanyEmailApp(ctk.CTk):
 
         self.stream_export_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
-            sidebar,
+            sidebar_scroll,
             text="💾 Gravar ficheiros enquanto extrai",
             variable=self.stream_export_var,
             font=ctk.CTkFont(size=11),
-        ).grid(row=18, column=0, padx=20, pady=2, sticky="w")
+        ).pack(fill="x", padx=4, pady=2)
 
         self.sqlite_stream_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
-            sidebar,
+            sidebar_scroll,
             text="🗄 SQLite em tempo real (volumes grandes)",
             variable=self.sqlite_stream_var,
             font=ctk.CTkFont(size=11),
-        ).grid(row=19, column=0, padx=20, pady=2, sticky="w")
+        ).pack(fill="x", padx=4, pady=2)
 
         self.antibot_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
-            sidebar,
+            sidebar_scroll,
             text="🛡 Anti-Bot (Playwright + Cloudflare)",
             variable=self.antibot_var,
-        ).grid(row=20, column=0, padx=20, pady=(6, 2), sticky="w")
+        ).pack(fill="x", padx=4, pady=(6, 2))
 
-        privacy = ctk.CTkFrame(sidebar, fg_color=("gray92", "gray18"), corner_radius=8)
-        privacy.grid(row=21, column=0, padx=16, pady=(0, 6), sticky="ew")
+        privacy = ctk.CTkFrame(sidebar_scroll, fg_color=("gray92", "gray18"), corner_radius=8)
+        privacy.pack(fill="x", padx=4, pady=(4, 6))
         ctk.CTkLabel(
             privacy,
             text="🌐 Hide My IP — integrado no software",
@@ -402,7 +418,7 @@ class CompanyEmailApp(ctk.CTk):
         ).pack(fill="x", padx=10, pady=(0, 6))
         ctk.CTkLabel(
             privacy,
-            text="Painel digital completo no separador «Extrair» (HUD).",
+            text="HUD completo no separador «Extrair».",
             font=ctk.CTkFont(size=9),
             text_color="gray",
             wraplength=250,
@@ -443,8 +459,8 @@ class CompanyEmailApp(ctk.CTk):
             anchor="w",
         ).pack(fill="x", padx=10, pady=(0, 8))
 
-        paths = ctk.CTkFrame(sidebar, fg_color="transparent")
-        paths.grid(row=22, column=0, padx=20, sticky="ew")
+        paths = ctk.CTkFrame(sidebar_scroll, fg_color="transparent")
+        paths.pack(fill="x", padx=4, pady=(4, 8))
         ctk.CTkLabel(paths, text="Pasta de downloads (BR/RFB)", anchor="w").pack(fill="x")
         self.data_dir_var = ctk.StringVar(value=str(DEFAULT_DATA_DIR))
         data_row = ctk.CTkFrame(paths, fg_color="transparent")
@@ -459,55 +475,23 @@ class CompanyEmailApp(ctk.CTk):
         ctk.CTkEntry(export_row, textvariable=self.export_dir_var).pack(side="left", fill="x", expand=True, padx=(0, 4))
         ctk.CTkButton(export_row, text="📂", width=36, command=self._browse_export_dir).pack(side="right")
 
-        preview_row = ctk.CTkFrame(sidebar, fg_color="transparent")
-        preview_row.grid(row=23, column=0, padx=20, pady=(8, 0), sticky="ew")
-        self.preview_count_var = ctk.StringVar(value="25")
-        ctk.CTkEntry(preview_row, textvariable=self.preview_count_var, width=44).pack(side="left", padx=(0, 6))
-        self.preview_btn = ctk.CTkButton(
-            preview_row,
-            text="🔍 Pré-visualizar",
-            height=36,
-            fg_color="#1a5276",
-            hover_color="#154360",
-            command=self._start_preview,
-        )
-        self.preview_btn.pack(side="left", fill="x", expand=True)
-        ctk.CTkLabel(
-            sidebar,
-            text="Vê amostra na tabela antes de gravar ficheiros",
-            font=ctk.CTkFont(size=10),
-            text_color="gray",
-            wraplength=260,
-        ).grid(row=24, column=0, padx=20, pady=(2, 0), sticky="w")
-
-        self.start_btn = ctk.CTkButton(sidebar, text="▶  Iniciar Extração", height=44,
-                                       font=ctk.CTkFont(size=15, weight="bold"),
-                                       command=self._start_extraction)
-        self.start_btn.grid(row=25, column=0, padx=20, pady=(8, 4), sticky="ew")
-
-        self.stop_btn = ctk.CTkButton(sidebar, text="⏹  Parar", height=36, fg_color="#c0392b",
-                                     hover_color="#962d22", command=self._stop_extraction, state="disabled")
-        self.stop_btn.grid(row=26, column=0, padx=20, pady=(4, 12), sticky="ew")
-
         ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=27, column=0, padx=20, pady=(0, 16), sticky="ew")
+                      command=lambda: self.tabview.set("📖 Guia")).grid(row=8, column=0, padx=20, pady=(0, 12), sticky="ew")
 
         # Main tabs
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
         self.tabview.grid(row=0, column=1, sticky="nsew")
         tab_extract = self.tabview.add("📊 Extrair")
-        tab_directories = self.tabview.add("🌍 Diretórios")
         tab_sources = self.tabview.add("➕ Minhas Fontes")
         tab_guide = self.tabview.add("📖 Guia")
 
         self._build_extract_tab(tab_extract)
-        self._build_directories_tab(tab_directories)
         self._build_sources_tab(tab_sources)
         self._build_guide_tab(tab_guide)
 
     def _build_extract_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(3, weight=1)
+        parent.grid_rowconfigure(4, weight=1)
 
         hud_wrap = ctk.CTkFrame(parent, fg_color=HUD_BG, corner_radius=8, border_width=2, border_color=HUD_BORDER)
         hud_wrap.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
@@ -521,7 +505,7 @@ class CompanyEmailApp(ctk.CTk):
         ).grid(row=0, column=0, sticky="w", padx=12, pady=(8, 0))
         self._privacy_hud = ctk.CTkTextbox(
             hud_wrap,
-            height=210,
+            height=180,
             font=ctk.CTkFont(family="Consolas", size=12),
             fg_color=HUD_BG,
             text_color=HUD_FG,
@@ -532,8 +516,58 @@ class CompanyEmailApp(ctk.CTk):
         self._privacy_hud.grid(row=1, column=0, sticky="ew", padx=10, pady=(4, 10))
         self._set_hud_display(self._loading_hud_text())
 
+        actions = ctk.CTkFrame(parent, fg_color=("gray92", "gray17"), corner_radius=10)
+        actions.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+        actions.grid_columnconfigure(0, weight=1)
+        actions.grid_columnconfigure(1, weight=1)
+        actions.grid_columnconfigure(2, weight=2)
+
+        self.start_btn = ctk.CTkButton(
+            actions,
+            text="▶  INICIAR EXTRAÇÃO",
+            height=52,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            command=self._start_extraction,
+        )
+        self.start_btn.grid(row=0, column=0, padx=(10, 6), pady=10, sticky="ew")
+
+        self.stop_btn = ctk.CTkButton(
+            actions,
+            text="⏹  PARAR",
+            height=52,
+            font=ctk.CTkFont(size=15, weight="bold"),
+            fg_color="#c0392b",
+            hover_color="#962d22",
+            command=self._stop_extraction,
+            state="disabled",
+        )
+        self.stop_btn.grid(row=0, column=1, padx=6, pady=10, sticky="ew")
+
+        preview_wrap = ctk.CTkFrame(actions, fg_color="transparent")
+        preview_wrap.grid(row=0, column=2, padx=(6, 10), pady=10, sticky="ew")
+        preview_wrap.grid_columnconfigure(1, weight=1)
+        self.preview_count_var = ctk.StringVar(value="25")
+        ctk.CTkEntry(preview_wrap, textvariable=self.preview_count_var, width=48).grid(row=0, column=0, padx=(0, 6))
+        self.preview_btn = ctk.CTkButton(
+            preview_wrap,
+            text="🔍 Pré-visualizar",
+            height=52,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#1a5276",
+            hover_color="#154360",
+            command=self._start_preview,
+        )
+        self.preview_btn.grid(row=0, column=1, sticky="ew")
+        ctk.CTkLabel(
+            actions,
+            text="Aguarde SYS: READY no HUD acima · Pré-visualizar mostra amostra na tabela sem gravar ficheiros",
+            font=ctk.CTkFont(size=11),
+            text_color="gray",
+            anchor="w",
+        ).grid(row=1, column=0, columnspan=3, sticky="ew", padx=12, pady=(0, 8))
+
         stats = ctk.CTkFrame(parent)
-        stats.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
+        stats.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 6))
         for i in range(4):
             stats.grid_columnconfigure(i, weight=1)
         self.stat_total = self._stat_card(stats, "Registos", "0", 0)
@@ -542,7 +576,7 @@ class CompanyEmailApp(ctk.CTk):
         self.stat_status = self._stat_card(stats, "Estado", "Pronto", 3)
 
         prog = ctk.CTkFrame(parent, fg_color="transparent")
-        prog.grid(row=2, column=0, sticky="ew", padx=12, pady=4)
+        prog.grid(row=3, column=0, sticky="ew", padx=12, pady=4)
         prog.grid_columnconfigure(0, weight=1)
         self.progress = ctk.CTkProgressBar(prog, height=14)
         self.progress.grid(row=0, column=0, sticky="ew", pady=(0, 4))
@@ -551,7 +585,7 @@ class CompanyEmailApp(ctk.CTk):
         self.status_label.grid(row=1, column=0, sticky="ew")
 
         table_frame = ctk.CTkFrame(parent)
-        table_frame.grid(row=3, column=0, sticky="nsew", padx=12, pady=6)
+        table_frame.grid(row=4, column=0, sticky="nsew", padx=12, pady=6)
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(0, weight=1)
 
@@ -572,7 +606,7 @@ class CompanyEmailApp(ctk.CTk):
         sy.grid(row=0, column=1, sticky="ns")
 
         exp = ctk.CTkFrame(parent, fg_color="transparent")
-        exp.grid(row=4, column=0, sticky="ew", padx=12, pady=(4, 12))
+        exp.grid(row=5, column=0, sticky="ew", padx=12, pady=(4, 12))
         ctk.CTkButton(exp, text="📥 CSV filtrado", command=self._export_filtered, width=120,
                       fg_color="#1a5276", hover_color="#154360").pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📂 Guardar na pasta", command=self._export_to_folder, width=130,
@@ -587,93 +621,6 @@ class CompanyEmailApp(ctk.CTk):
                       fg_color="#6c3483", hover_color="#512664").pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="🗑 Limpar", command=self._clear_results, width=100,
                       fg_color="gray40").pack(side="right")
-
-    def _build_directories_tab(self, parent: ctk.CTkFrame) -> None:
-        parent.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(2, weight=1)
-
-        top = ctk.CTkFrame(parent, fg_color="transparent")
-        top.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
-        ctk.CTkLabel(
-            top,
-            text="Bases de dados e diretórios empresariais por país",
-            font=ctk.CTkFont(size=15, weight="bold"),
-        ).pack(side="left")
-        self.catalog_country_var = ctk.StringVar(value="ES")
-        ctk.CTkOptionMenu(
-            top,
-            variable=self.catalog_country_var,
-            values=CATALOG_COUNTRY_CODES,
-            command=self._refresh_directories_list,
-            width=180,
-        ).pack(side="right")
-
-        self._catalog_hint_label = ctk.CTkLabel(
-            parent,
-            text="",
-            font=ctk.CTkFont(size=11),
-            text_color="gray",
-            justify="left",
-        )
-        self._catalog_hint_label.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
-
-        self._directories_scroll = ctk.CTkScrollableFrame(parent)
-        self._directories_scroll.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
-        self._refresh_directories_list()
-
-    def _refresh_directories_list(self, _=None) -> None:
-        for widget in self._directories_scroll.winfo_children():
-            widget.destroy()
-        code = self.catalog_country_var.get()
-        meta = COUNTRY_CATALOG_REGISTRY.get(code, {})
-        self._catalog_hint_label.configure(
-            text=meta.get("catalog_hint", "Escolha uma fonte e clique «Usar». Depois «Pré-visualizar» para ver emails.")
-        )
-        for entry in get_country_catalog(code):
-            row = ctk.CTkFrame(self._directories_scroll, fg_color=("gray90", "gray20"))
-            row.pack(fill="x", pady=3, padx=2)
-
-            left = ctk.CTkFrame(row, fg_color="transparent")
-            left.pack(side="left", fill="both", expand=True, padx=8, pady=6)
-
-            ctk.CTkLabel(left, text=entry["name"], font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w")
-            ctk.CTkLabel(
-                left, text=entry["description"], font=ctk.CTkFont(size=10),
-                text_color="gray", wraplength=480, justify="left",
-            ).pack(anchor="w")
-            ctk.CTkLabel(
-                left, text=entry["url"], font=ctk.CTkFont(size=9),
-                text_color="#4a9eff", wraplength=480, justify="left",
-            ).pack(anchor="w")
-
-            ctk.CTkLabel(
-                row, text=entry.get("emails", "—"), font=ctk.CTkFont(size=9),
-                text_color="gray", width=72,
-            ).pack(side="right", padx=4)
-
-            ctk.CTkButton(
-                row, text="Usar", width=64, height=28,
-                command=lambda c=code, eid=entry["id"]: self._use_catalog_source(c, eid),
-            ).pack(side="right", padx=8, pady=6)
-
-    def _use_catalog_source(self, country_code: str, catalog_id: str) -> None:
-        entry = next((e for e in get_country_catalog(country_code) if e["id"] == catalog_id), None)
-        if not entry:
-            return
-        source_key = catalog_source_key_for_country(country_code, catalog_id)
-        self.country_var.set(country_code)
-        self._on_country_change(country_code)
-        label = next(
-            (lbl for lbl, key in self._source_map.items() if key == f"builtin:{source_key}"),
-            None,
-        )
-        if label:
-            self.source_var.set(label)
-        self.tabview.set("📊 Extrair")
-        country_name = COUNTRIES[country_code]["name"]
-        self._set_status(
-            f"{country_name}: {entry['name']}. Clique «Pré-visualizar» para ver emails antes da extração completa."
-        )
 
     def _build_sources_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
@@ -733,23 +680,47 @@ class CompanyEmailApp(ctk.CTk):
         self._rebuild_source_menu()
         self._rebuild_sources_list()
 
-    def _rebuild_source_menu(self) -> None:
+    def _rebuild_source_menu(self, *, preserve: str | None = None) -> None:
         self._source_map = {}
         labels: list[str] = []
 
-        country = self.country_var.get()
-        if country in COUNTRIES:
-            for key, src in COUNTRIES[country]["sources"].items():
-                label = f"{BUILTIN_PREFIX}{src.name}"
-                labels.append(label)
-                self._source_map[label] = f"builtin:{key}"
+        for country_code in COUNTRY_MENU_ORDER:
+            if country_code == "OUTRO":
+                continue
+            if country_code not in COUNTRIES:
+                continue
+            flag = COUNTRIES[country_code]["flag"]
+            for key, src in COUNTRIES[country_code]["sources"].items():
+                label = f"{flag} {src.name}"
+                unique = label
+                suffix = 2
+                while unique in self._source_map:
+                    unique = f"{label} ({suffix})"
+                    suffix += 1
+                labels.append(unique)
+                self._source_map[unique] = f"builtin:{country_code}:{key}"
 
         for cs in self._custom_sources:
-            if country != "OUTRO" and cs.country not in (country, "OUTRO"):
-                continue
-            label = f"{CUSTOM_PREFIX}{cs.name}"
-            labels.append(label)
-            self._source_map[label] = f"custom:{cs.id}"
+            flag = COUNTRIES.get(cs.country, {}).get("flag", "✦")
+            label = f"{flag} {CUSTOM_PREFIX}{cs.name}"
+            unique = label
+            suffix = 2
+            while unique in self._source_map:
+                unique = f"{label} ({suffix})"
+                suffix += 1
+            labels.append(unique)
+            self._source_map[unique] = f"custom:{cs.id}"
+
+        outro = COUNTRIES.get("OUTRO", {})
+        for key, src in outro.get("sources", {}).items():
+            label = f"🌍 {src.name}"
+            unique = label
+            suffix = 2
+            while unique in self._source_map:
+                unique = f"{label} ({suffix})"
+                suffix += 1
+            labels.append(unique)
+            self._source_map[unique] = f"builtin:OUTRO:{key}"
 
         labels.append(SPECIAL_SOURCES["__scraper__"])
         self._source_map[SPECIAL_SOURCES["__scraper__"]] = "special:scraper"
@@ -757,8 +728,19 @@ class CompanyEmailApp(ctk.CTk):
         self._source_map[SPECIAL_SOURCES["__add__"]] = "special:add"
 
         self.source_menu.configure(values=labels)
-        if labels:
-            self.source_var.set(labels[0])
+        if preserve and preserve in self._source_map:
+            self.source_var.set(preserve)
+        elif labels:
+            preferred = self._default_source_label_for_country(self.country_var.get(), labels)
+            self.source_var.set(preferred or labels[0])
+
+    def _default_source_label_for_country(self, country_code: str, labels: list[str]) -> str | None:
+        if country_code not in COUNTRIES:
+            return None
+        for label, mapped in self._source_map.items():
+            if mapped.startswith(f"builtin:{country_code}:"):
+                return label
+        return None
 
     def _rebuild_sources_list(self) -> None:
         for w in self.sources_list.winfo_children():
@@ -785,12 +767,19 @@ class CompanyEmailApp(ctk.CTk):
                           command=lambda sid=cs.id: self._delete_source(sid)).pack(pady=2)
 
     def _use_custom_source(self, source: CustomSource) -> None:
-        label = f"{CUSTOM_PREFIX}{source.name}"
+        flag = COUNTRIES.get(source.country, {}).get("flag", "✦")
+        label = f"{flag} {CUSTOM_PREFIX}{source.name}"
+        if label not in self._source_map:
+            self._rebuild_source_menu()
         if label in self._source_map:
             self.source_var.set(label)
-        self.country_var.set(source.country if source.country != "OUTRO" else "OUTRO")
+        if source.country and source.country != "OUTRO":
+            self.country_var.set(source.country)
+            self._on_country_change()
+            if label in self._source_map:
+                self.source_var.set(label)
         self.tabview.set("📊 Extrair")
-        self._set_status(f"Fonte '{source.name}' selecionada. Clique em Iniciar Extração.")
+        self._set_status(f"Fonte '{source.name}' selecionada. Clique INICIAR EXTRAÇÃO.")
 
     def _delete_source(self, source_id: str) -> None:
         if messagebox.askyesno(APP_NAME, "Eliminar esta fonte personalizada?"):
@@ -827,7 +816,18 @@ class CompanyEmailApp(ctk.CTk):
         key = self._source_map.get(choice, "")
         if key == "special:add":
             self._open_add_source_dialog()
-            self._rebuild_source_menu()
+            self._rebuild_source_menu(preserve=choice if choice != SPECIAL_SOURCES["__add__"] else None)
+            return
+        if key.startswith("builtin:"):
+            parts = key.split(":", 2)
+            if len(parts) == 3:
+                country_code = parts[1]
+                if self.country_var.get() != country_code:
+                    self.country_var.set(country_code)
+                    self._on_country_change()
+                    self.source_var.set(choice)
+        country_name = COUNTRIES.get(self.country_var.get(), {}).get("name", self.country_var.get())
+        self._set_status(f"Base selecionada ({country_name}). Clique «INICIAR EXTRAÇÃO» ou «Pré-visualizar».")
 
     def _on_country_change(self, _=None) -> None:
         country = self.country_var.get()
@@ -906,7 +906,12 @@ class CompanyEmailApp(ctk.CTk):
             self.stat_country.configure(text=f"{cdata['flag']} {cdata['name']}")
         else:
             self.stat_country.configure(text=country)
-        self._rebuild_source_menu()
+
+    def _select_source_for_country(self, country_code: str, source_key: str) -> None:
+        target = f"builtin:{country_code}:{source_key}"
+        label = next((lbl for lbl, key in self._source_map.items() if key == target), None)
+        if label:
+            self.source_var.set(label)
 
     def _build_sector_filter_ui(self, country: str, value: str = "") -> None:
         ctk.CTkLabel(
@@ -959,10 +964,11 @@ class CompanyEmailApp(ctk.CTk):
     def _quick_start(self) -> None:
         self.country_var.set("PT")
         self._on_country_change()
+        self._select_source_for_country("PT", "fiz_portugal")
         self.max_var.set("50")
         self.mode_var.set("limitado")
         self.tabview.set("📊 Extrair")
-        self._set_status("Configurado para teste rápido (50 empresas PT). Clique em Iniciar!")
+        self._set_status("Configurado para teste rápido (50 empresas PT). Clique INICIAR EXTRAÇÃO!")
 
     def _resolve_source(self):
         label = self.source_var.get()
@@ -970,9 +976,15 @@ class CompanyEmailApp(ctk.CTk):
         country = self.country_var.get()
 
         if key.startswith("builtin:"):
-            sk = key.split(":", 1)[1]
-            src_country = country if country in COUNTRIES else "OUTRO"
-            return country, sk, COUNTRIES[src_country]["sources"][sk]
+            parts = key.split(":", 2)
+            if len(parts) == 3:
+                src_country, sk = parts[1], parts[2]
+            else:
+                sk = parts[1]
+                src_country = country if country in COUNTRIES else "OUTRO"
+            if src_country not in COUNTRIES:
+                raise ValueError("País da fonte inválido.")
+            return src_country, sk, COUNTRIES[src_country]["sources"][sk]
         if key.startswith("custom:"):
             cid = key.split(":", 1)[1]
             for cs in self._custom_sources:

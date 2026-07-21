@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.15 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.16 — LEIA-ME
 ================================================================================
 
 DOWNLOAD
@@ -14,7 +14,19 @@ INSTALACAO
 3. Abra pelo Menu Iniciar
 
 ================================================================================
-  PAINEL HUD — RADIO DIGITAL (NOVO v2.15)
+  COMO USAR (v2.16 — INTERFACE CORRIGIDA)
+================================================================================
+
+1. Barra lateral: menu «Base de dados / Diretório»
+   → Todas as bases (PT, BR, ES, FR…) na mesma lista
+
+2. Separador «Extrair» → botões GRANDES abaixo do HUD:
+   ▶ INICIAR EXTRAÇÃO  |  ⏹ PARAR  |  🔍 Pré-visualizar
+
+3. Aguarde SYS: READY no painel HUD antes de iniciar
+
+================================================================================
+  PAINEL HUD — RADIO DIGITAL
 ================================================================================
 
 No separador «Extrair» aparece um painel ESCURO com letras AZUIS
@@ -26,7 +38,7 @@ No separador «Extrair» aparece um painel ESCURO com letras AZUIS
   • STATUS: IP OCULTO — OK (quando funciona)
   • BROWSER / IDIOMA / impressao digital
 
-Aguarde SYS: READY antes de clicar Iniciar Extracao.
+Aguarde SYS: READY antes de clicar INICIAR EXTRAÇÃO.
 
 Botao «Atualizar HUD» na barra lateral para refrescar.
 

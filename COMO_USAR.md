@@ -1,8 +1,8 @@
-# Company Email Extractor v2.15 — Guia Completo
+# Company Email Extractor v2.16 — Guia Completo
 
 **Software nativo Windows** para extrair emails e dados de empresas de **19 países** e qualquer site.
 
-- Versão atual: **2.15.0**
+- Versão atual: **2.16.0**
 - Download: https://github.com/tiagosgama90-coder/web_scraping/releases/latest
 - Ficheiro: `CompanyEmailExtractor-Setup.exe`
 
@@ -33,7 +33,7 @@
 4. **Portugal — FIZ**: diretório com ~490.000 empresas via sitemap
 5. **16 países com diretórios**: Espanha, França, Alemanha, Itália, UK, México, Argentina, Colômbia, Chile, Peru, EUA, Canadá, Holanda, Bélgica, Polónia, Roménia
 6. **Sites personalizados**: qualquer URL, sitemap XML ou lista de links
-7. **Separador «Diretórios»**: lista todas as fontes por país com botão **Usar**
+7. **Menu «Base de dados / Diretório»**: todas as fontes de todos os países numa lista (FIZ, Empresite, Receita…)
 
 ### B) Limpeza automática de emails
 
@@ -233,16 +233,16 @@ Documentos\CompanyEmailExtractor\
 | **Anti-Bot** | Playwright + Cloudflare |
 | **Painel HUD** | Separador Extrair — IP real, IP oculto, país, estado |
 | **Hide My IP** | Ligado por defeito — desmarque para IP normal |
-| **🔍 Pré-visualizar** | Amostra na tabela sem gravar |
-| **▶ Iniciar Extração** | Extração completa + gravação |
-| **⏹ Parar** | Para e mantém o que já foi gravado |
+| **🔍 Pré-visualizar** | Botão grande no separador Extrair — amostra sem gravar |
+| **▶ INICIAR EXTRAÇÃO** | Botão grande no separador Extrair — extração completa |
+| **⏹ PARAR** | Botão grande no separador Extrair — para e mantém o gravado |
+| **Base de dados / Diretório** | Menu lateral com TODAS as bases (todos os países) |
 
 ### Separadores
 
 | Separador | Conteúdo |
 |-----------|----------|
-| **📊 Extrair** | Tabela, progresso, botões de exportação |
-| **🌍 Diretórios** | Bases de dados por país — botão **Usar** |
+| **📊 Extrair** | HUD, botões INICIAR/PARAR, tabela, exportação |
 | **➕ Minhas Fontes** | Adicionar sites personalizados |
 | **📖 Guia** | Ajuda integrada |
 
@@ -252,27 +252,26 @@ Documentos\CompanyEmailExtractor\
 
 ### Teste rápido (2 minutos) — Portugal
 
-1. País: **PT**
-2. Fonte: **★ Diretório FIZ**
-3. Modo: **limitado**, Limite: **50**
-4. Privacidade: **Direta** (ou Proxy se tiver VPN)
-5. **🔍 Pré-visualizar** (25) → ver emails na tabela
-6. **▶ Iniciar Extração** se estiver OK
+1. Menu lateral **Base de dados / Diretório**: **🇵🇹 Diretório FIZ**
+2. Modo: **limitado**, Limite: **50**
+3. Separador **Extrair** → aguarde **SYS: READY** no HUD
+4. **🔍 Pré-visualizar** (25) → ver emails na tabela
+5. **▶ INICIAR EXTRAÇÃO** se estiver OK
 
 ### Brasil — milhões de emails
 
-1. País: **BR**, Fonte: **★ Receita Federal**
-2. UF: **Todos**, marque **Extrair UF por UF**
+1. Menu **Base de dados**: **🇧🇷 Receita Federal**
+2. País (filtros): **BR**, UF: **Todos**, marque **Extrair UF por UF**
 3. Modo: **automatico**, Limite: **0**
 4. Ative: **Gravar enquanto extrai**, **SQLite**
-5. **▶ Iniciar Extração**
+5. **▶ INICIAR EXTRAÇÃO**
 6. Resultados em `Documentos\CompanyEmailExtractor\export\`
 
 ### Qualquer país com diretórios
 
-1. Separador **🌍 Diretórios** → escolha país → **Usar**
+1. Menu **Base de dados / Diretório** → escolha ex.: **🇪🇸 Empresite**
 2. **Pré-visualizar** (25)
-3. **Iniciar Extração**
+3. **▶ INICIAR EXTRAÇÃO**
 
 ### Site personalizado
 
@@ -289,21 +288,21 @@ Documentos\CompanyEmailExtractor\
 | 🇧🇷 Brasil | Receita Federal | Dados oficiais abertos |
 | 🇵🇹 Portugal | FIZ | Diretório público |
 | 🇪🇸 Espanha | Empresite | Sitemap (~4M empresas) |
-| 🇫🇷 França | Societe.com, Pages Jaunes | Diretórios |
-| 🇩🇪 Alemanha | Gelbe Seiten, North Data | Diretórios |
-| 🇮🇹 Itália | Pagine Gialle | Diretórios |
-| 🇬🇧 Reino Unido | Yell.com | Diretórios |
+| 🇫🇷 França | Societe.com, Pages Jaunes | Menu Base de dados |
+| 🇩🇪 Alemanha | Gelbe Seiten, North Data | Menu Base de dados |
+| 🇮🇹 Itália | Pagine Gialle | Menu Base de dados |
+| 🇬🇧 Reino Unido | Yell.com | Menu Base de dados |
 | 🇲🇽 México | Sección Amarilla | Guias locais |
-| 🇦🇷 Argentina | Guía de Empresas | Diretórios |
+| 🇦🇷 Argentina | Guía de Empresas | Menu Base de dados |
 | 🇨🇴 Colômbia | Páginas Amarillas | Guias locais |
 | 🇨🇱 Chile | Amarillas.cl | Guias locais |
 | 🇵🇪 Peru | Páginas Amarillas | Guias locais |
-| 🇺🇸 EUA | Yellow Pages, Manta | Diretórios |
+| 🇺🇸 EUA | Yellow Pages, Manta | Menu Base de dados |
 | 🇨🇦 Canadá | Yellow Pages CA | Guias locais |
-| 🇳🇱 Holanda | Detelefoongids | Diretórios |
-| 🇧🇪 Bélgica | Golden Pages | Diretórios |
-| 🇵🇱 Polónia | Panorama Firm | Diretórios |
-| 🇷🇴 Roménia | ListaFirme | Diretórios |
+| 🇳🇱 Holanda | Detelefoongids | Menu Base de dados |
+| 🇧🇪 Bélgica | Golden Pages | Menu Base de dados |
+| 🇵🇱 Polónia | Panorama Firm | Menu Base de dados |
+| 🇷🇴 Roménia | ListaFirme | Menu Base de dados |
 
 ---
 
@@ -376,4 +375,4 @@ C:\Users\SeuNome\AppData\Local\CompanyEmailExtractor\custom_sources.json
 
 ---
 
-*Company Email Extractor v2.15.0 — Guia do utilizador*
+*Company Email Extractor v2.16.0 — Guia do utilizador*

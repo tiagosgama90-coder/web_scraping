@@ -2,7 +2,7 @@
 ; Requer Inno Setup 6: https://jrsoftware.org/isinfo.php
 
 #define MyAppName "Company Email Extractor"
-#define MyAppVersion "2.15.1"
+#define MyAppVersion "2.16.0"
 #define MyAppPublisher "Company Email Extractor"
 #define MyAppExeName "CompanyEmailExtractor.exe"
 
