@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.3."""
+"""Aplicação desktop nativa — Company Email Extractor v2.4."""
 
 from __future__ import annotations
 
@@ -20,7 +20,19 @@ from cnpj_extractor.custom_sources import (
     load_custom_sources,
     parse_url_list,
 )
-from cnpj_extractor.database import export_csv, export_emails_for_marketing_csv, export_emails_only_csv, export_sqlite
+from cnpj_extractor.database import (
+    export_csv,
+    export_emails_for_marketing_csv,
+    export_emails_only_csv,
+    export_filtered_csv,
+    export_sqlite,
+)
+from cnpj_extractor.email_validator import filter_records_with_mx
+from cnpj_extractor.field_filters import (
+    AVAILABLE_FIELDS,
+    DEFAULT_FIELD_KEYS,
+    filter_records_by_requirements,
+)
 from cnpj_extractor.gui_text import ADD_SOURCE_HELP, GUIDE_TEXT
 from cnpj_extractor.sources import COUNTRIES
 from cnpj_extractor.sources.custom_adapter import CustomSourceAdapter
@@ -34,7 +46,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.4.0"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -164,6 +176,7 @@ class CompanyEmailApp(ctk.CTk):
         self._stop_requested = False
         self._custom_sources: list[CustomSource] = []
         self._source_map: dict[str, str] = {}
+        self._selected_export_fields: list[str] = list(DEFAULT_FIELD_KEYS)
 
         self._build_ui()
         self._refresh_custom_sources()
@@ -182,7 +195,7 @@ class CompanyEmailApp(ctk.CTk):
         # Sidebar
         sidebar = ctk.CTkFrame(self, width=300, corner_radius=0)
         sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_rowconfigure(18, weight=1)
+        sidebar.grid_rowconfigure(16, weight=1)
 
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
@@ -214,20 +227,35 @@ class CompanyEmailApp(ctk.CTk):
         self.filter_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
         self.filter_frame.grid(row=10, column=0, padx=20, sticky="ew")
 
+        self.fields_scroll = ctk.CTkScrollableFrame(sidebar, height=110, label_text="Campos a exportar")
+        self.fields_scroll.grid(row=11, column=0, padx=20, pady=(4, 4), sticky="ew")
+        self.field_vars: dict[str, ctk.BooleanVar] = {}
+        self._build_field_selector()
+
         self.only_email_var = ctk.BooleanVar(value=True)
-        ctk.CTkCheckBox(sidebar, text="Apenas com e-mail válido", variable=self.only_email_var).grid(
-            row=11, column=0, padx=20, pady=6, sticky="w"
+        ctk.CTkCheckBox(sidebar, text="Obrigatório ter e-mail", variable=self.only_email_var).grid(
+            row=12, column=0, padx=20, pady=2, sticky="w"
         )
+        self.require_phone_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(sidebar, text="Obrigatório ter telefone", variable=self.require_phone_var).grid(
+            row=13, column=0, padx=20, pady=2, sticky="w"
+        )
+        self.mx_validate_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            sidebar,
+            text="🌐 Validar domínio DNS/MX",
+            variable=self.mx_validate_var,
+        ).grid(row=14, column=0, padx=20, pady=2, sticky="w")
 
         self.antibot_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             sidebar,
             text="🛡 Anti-Bot (Playwright + Cloudflare)",
             variable=self.antibot_var,
-        ).grid(row=12, column=0, padx=20, pady=6, sticky="w")
+        ).grid(row=15, column=0, padx=20, pady=6, sticky="w")
 
         paths = ctk.CTkFrame(sidebar, fg_color="transparent")
-        paths.grid(row=13, column=0, padx=20, sticky="ew")
+        paths.grid(row=16, column=0, padx=20, sticky="ew")
         ctk.CTkLabel(paths, text="Pasta de downloads (BR/RFB)", anchor="w").pack(fill="x")
         self.data_dir_var = ctk.StringVar(value=str(DEFAULT_DATA_DIR))
         data_row = ctk.CTkFrame(paths, fg_color="transparent")
@@ -245,14 +273,14 @@ class CompanyEmailApp(ctk.CTk):
         self.start_btn = ctk.CTkButton(sidebar, text="▶  Iniciar Extração", height=44,
                                        font=ctk.CTkFont(size=15, weight="bold"),
                                        command=self._start_extraction)
-        self.start_btn.grid(row=18, column=0, padx=20, pady=(10, 4), sticky="ew")
+        self.start_btn.grid(row=17, column=0, padx=20, pady=(10, 4), sticky="ew")
 
         self.stop_btn = ctk.CTkButton(sidebar, text="⏹  Parar", height=36, fg_color="#c0392b",
                                      hover_color="#962d22", command=self._stop_extraction, state="disabled")
-        self.stop_btn.grid(row=19, column=0, padx=20, pady=(4, 12), sticky="ew")
+        self.stop_btn.grid(row=18, column=0, padx=20, pady=(4, 12), sticky="ew")
 
         ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=20, column=0, padx=20, pady=(0, 16), sticky="ew")
+                      command=lambda: self.tabview.set("📖 Guia")).grid(row=19, column=0, padx=20, pady=(0, 16), sticky="ew")
 
         # Main tabs
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
@@ -310,7 +338,9 @@ class CompanyEmailApp(ctk.CTk):
 
         exp = ctk.CTkFrame(parent, fg_color="transparent")
         exp.grid(row=3, column=0, sticky="ew", padx=12, pady=(4, 12))
-        ctk.CTkButton(exp, text="💾 SQLite (.db)", command=self._export_sqlite, width=140).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(exp, text="📥 CSV filtrado", command=self._export_filtered, width=120,
+                      fg_color="#1a5276", hover_color="#154360").pack(side="left", padx=(0, 6))
+        ctk.CTkButton(exp, text="💾 SQLite (.db)", command=self._export_sqlite, width=120).pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📄 CSV completo", command=self._export_csv, width=120).pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📧 Só emails", command=self._export_emails_only, width=110,
                       fg_color="#1a7a4c", hover_color="#145c38").pack(side="left", padx=(0, 6))
@@ -321,7 +351,7 @@ class CompanyEmailApp(ctk.CTk):
 
     def _build_sources_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(1, weight=1)
+        parent.grid_rowconfigure(2, weight=1)
 
         top = ctk.CTkFrame(parent, fg_color="transparent")
         top.grid(row=0, column=0, sticky="ew", padx=12, pady=12)
@@ -329,11 +359,23 @@ class CompanyEmailApp(ctk.CTk):
                      font=ctk.CTkFont(size=16, weight="bold")).pack(side="left")
         ctk.CTkButton(top, text="➕ Adicionar Fonte", command=self._open_add_source_dialog).pack(side="right")
 
+        quick = ctk.CTkFrame(parent)
+        quick.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+        ctk.CTkLabel(quick, text="🌐 Novo site — cole o URL e adicione (usa anti-bot automaticamente)",
+                     anchor="w", font=ctk.CTkFont(size=12)).pack(fill="x", padx=10, pady=(8, 4))
+        qrow = ctk.CTkFrame(quick, fg_color="transparent")
+        qrow.pack(fill="x", padx=10, pady=(0, 10))
+        self.quick_url_var = ctk.StringVar(value="https://")
+        ctk.CTkEntry(qrow, textvariable=self.quick_url_var, placeholder_text="https://site.com/sitemap.xml").pack(
+            side="left", fill="x", expand=True, padx=(0, 6)
+        )
+        ctk.CTkButton(qrow, text="Adicionar e usar", width=120, command=self._quick_add_source).pack(side="right")
+
         self.sources_list = ctk.CTkScrollableFrame(parent)
-        self.sources_list.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.sources_list.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
 
         help_frame = ctk.CTkFrame(parent)
-        help_frame.grid(row=2, column=0, sticky="ew", padx=12, pady=(0, 12))
+        help_frame.grid(row=3, column=0, sticky="ew", padx=12, pady=(0, 12))
         ctk.CTkLabel(help_frame, text=ADD_SOURCE_HELP, justify="left", anchor="w",
                      font=ctk.CTkFont(size=12), text_color="gray").pack(padx=12, pady=12)
 
@@ -428,6 +470,29 @@ class CompanyEmailApp(ctk.CTk):
         if messagebox.askyesno(APP_NAME, "Eliminar esta fonte personalizada?"):
             delete_custom_source(source_id)
             self._refresh_custom_sources()
+
+    def _quick_add_source(self) -> None:
+        url = self.quick_url_var.get().strip()
+        if not url or url == "https://":
+            messagebox.showwarning(APP_NAME, "Cole um URL válido (sitemap ou página).")
+            return
+        stype = "sitemap" if url.endswith(".xml") or "sitemap" in url.lower() else "pagina"
+        from urllib.parse import urlparse
+        host = urlparse(url).netloc or "site"
+        source = CustomSource(
+            id="",
+            name=f"Site: {host}",
+            url=url,
+            source_type=stype,
+            country="OUTRO",
+            auto_discover=True,
+            notes="Adicionado via URL rápido — anti-bot ativo",
+        )
+        add_custom_source(source)
+        self._refresh_custom_sources()
+        self._use_custom_source(source)
+        self.quick_url_var.set("https://")
+        messagebox.showinfo(APP_NAME, f"Fonte '{source.name}' adicionada e selecionada.")
 
     def _open_add_source_dialog(self) -> None:
         AddSourceDialog(self, on_saved=self._refresh_custom_sources)
@@ -619,7 +684,16 @@ class CompanyEmailApp(ctk.CTk):
                     self.after(0, lambda n=len(new_records): self._set_status(f"{n:,} registos..."))
 
             cleaned = filter_valid_email_records(new_records)
+            if self.mx_validate_var.get():
+                mx_cb = lambda v, m: self.after(0, self._set_status, m, v)
+                cleaned, _ = filter_records_with_mx(cleaned, check_mx=True, progress_callback=mx_cb)
+            cleaned = filter_records_by_requirements(
+                cleaned,
+                require_email=self.only_email_var.get(),
+                require_phone=self.require_phone_var.get(),
+            )
             self.records = dedupe_by_email(cleaned) if only_email else dedupe_records(cleaned)
+            self._selected_export_fields = self._get_selected_fields()
             self.after(0, self._on_extraction_done)
         except Exception as exc:
             self.after(0, self._on_extraction_error, str(exc))
@@ -676,6 +750,24 @@ class CompanyEmailApp(ctk.CTk):
         self._update_stats()
         self.progress.set(0)
 
+    def _build_field_selector(self) -> None:
+        for widget in self.fields_scroll.winfo_children():
+            widget.destroy()
+        self.field_vars.clear()
+        for key, label, default_on in AVAILABLE_FIELDS:
+            var = ctk.BooleanVar(value=default_on)
+            self.field_vars[key] = var
+            ctk.CTkCheckBox(
+                self.fields_scroll,
+                text=label,
+                variable=var,
+                font=ctk.CTkFont(size=11),
+            ).pack(anchor="w", pady=1)
+
+    def _get_selected_fields(self) -> list[str]:
+        selected = [key for key, var in self.field_vars.items() if var.get()]
+        return selected or list(DEFAULT_FIELD_KEYS)
+
     def _get_data_dir(self) -> str:
         path = Path(self.data_dir_var.get().strip() or DEFAULT_DATA_DIR)
         path.mkdir(parents=True, exist_ok=True)
@@ -723,6 +815,25 @@ class CompanyEmailApp(ctk.CTk):
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         country = self.country_var.get().lower()
         return str(export_dir / f"empresas_{country}_{stamp}.{extension}")
+
+    def _export_filtered(self) -> None:
+        if not self.records:
+            messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
+            return
+        fields = self._get_selected_fields()
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            filetypes=[("CSV", "*.csv")],
+            initialdir=str(self._get_export_dir()),
+            initialfile=Path(self._default_export_path("csv")).with_suffix("").name + "_filtrado.csv",
+        )
+        if path:
+            export_filtered_csv(self.records, path, selected_fields=fields, unique_emails=True)
+            messagebox.showinfo(
+                APP_NAME,
+                f"CSV exportado com {len(fields)} colunas:\n"
+                f"{', '.join(fields)}\n\n{path}",
+            )
 
     def _export_emails_only(self) -> None:
         if not self.records:
@@ -790,7 +901,7 @@ class CompanyEmailApp(ctk.CTk):
             initialfile=Path(self._default_export_path("csv")).name,
         )
         if path:
-            export_csv(self.records, path)
+            export_csv(self.records, path, selected_fields=self._get_selected_fields())
             messagebox.showinfo(APP_NAME, f"Guardado:\n{path}")
 
 
