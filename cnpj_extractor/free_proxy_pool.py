@@ -168,7 +168,7 @@ def acquire_working_proxy(
     if not candidates:
         return None
 
-    report(f"🔍 A testar proxies ({len(candidates)} candidatos)...")
+    report(f"🔍 A testar servidores proxy ({len(candidates)} candidatos — não são bases de dados)...")
     tried = 0
     batch_size = 10
 
