@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.12 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.13 — LEIA-ME
 ================================================================================
 
 DOWNLOAD
@@ -47,11 +47,15 @@ GRAVACAO
 
 PRIVACIDADE (SUA ESCOLHA)
   19. "Direta (IP normal)" — ligacao normal (predefinido)
-  20. "Proxy / VPN (ocultar IP)" — trafego pela SUA VPN
-  21. O software NAO inclui VPN gratuita — voce configura o proxy
-  22. "Ocultar MAC / ID maquina / impressao digital" — valores falsos
-      aleatorios por sessao (MAC, ID, hostname, navegador)
-  23. Sites NAO recebem o MAC real da placa — so identificadores HTTP
+  20. "Ocultar IP (automatico — gratuito)" — estilo HIDE MY IP (1 clique)
+  21. "Proxy / VPN (manual)" — trafego pela SUA VPN
+  22. "Ocultar MAC / ID maquina" — valores falsos aleatorios
+
+OCULTAR IP AUTOMATICO (GRATUITO)
+  1. Privacidade -> "Ocultar IP (automatico — gratuito)"
+  2. Clique Pre-visualizar ou Iniciar Extracao
+  3. Aguarde 30-60 s (testa proxies gratuitos)
+  4. Extracao com IP oculto — troca proxy se falhar
 
 JANELA
   24. Redimensionavel — arraste os cantos para ajustar ao ecra
@@ -66,27 +70,28 @@ EXPORTACAO
 
 O QUE NAO FAZ
   29. Nao recolhe os seus dados pessoais
-  30. Nao inclui VPN gratuita
-  31. Nao garante 100% de emails em todos os sites
+  30. Nao garante 100% de emails em todos os sites
+  31. Proxies gratuitos podem falhar ou ser lentos
 
 ================================================================================
-  VPN / PROXY — E GRATUITA?
+  VPN / PROXY — COMO FUNCIONA?
 ================================================================================
 
-NAO. O software NAO inclui VPN.
+MODO GRATUITO (1 CLIQUE — ESTILO HIDE MY IP):
+  - Escolha "Ocultar IP (automatico — gratuito)"
+  - O software procura e testa proxies gratuitos sozinho
+  - Aguarde 30-60 segundos na primeira ligacao
 
-O que faz:
-  - Modo "Direta": usa o IP normal da sua internet
-  - Modo "Proxy/VPN": encaminha pelo proxy que VOCE colar
+MODO MANUAL (VPN PAGA — MAIS FIAVEL):
+  - Modo "Proxy / VPN (manual)"
+  - Cole o proxy da sua VPN (ex: socks5://127.0.0.1:1080)
 
-VPN e um servico SEPARADO (app que instala no PC):
-  - Gratuitas existem (ProtonVPN free, etc.) mas com limites
-  - Pagas (NordVPN, Mullvad...) sao mais fiaveis
-  - Muitas VPNs dao proxy SOCKS5 nas definicoes
+MODO DIRETO:
+  - Usa o IP normal da sua internet
 
-Como usar:
-  1. Instale e ligue a SUA VPN (app separada)
-  2. No software: Privacidade -> "Proxy / VPN"
+VPN MANUAL (opcional, mais fiavel que proxies gratuitos):
+  1. Instale e ligue a SUA VPN (NordVPN, Mullvad, ProtonVPN...)
+  2. No software: Privacidade -> "Proxy / VPN (manual)"
   3. Cole: socks5://127.0.0.1:1080 (exemplo)
   4. Inicie extracao
 
@@ -96,7 +101,7 @@ Como usar:
 
 1. Abra o programa
 2. Pais: PT | Fonte: FIZ | Limite: 50
-3. Privacidade: Direta (ou Proxy se tiver VPN)
+3. Privacidade: "Ocultar IP (automatico)" OU Direta OU Proxy manual
 4. Pre-visualizar (25) -> ver emails
 5. Iniciar Extracao
 6. Ficheiros em: Documentos\CompanyEmailExtractor\export\

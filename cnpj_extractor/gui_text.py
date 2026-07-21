@@ -80,21 +80,23 @@ PASSO 5 — PRIVACIDADE (SUA ESCOLHA)
 Na secção «🔒 Privacidade — ligação e identidade»:
 
   • Direta (IP normal) — ligação normal, predefinição
-  • Proxy / VPN (ocultar IP) — tráfego pela VPN que VOCÊ configurar
-  • 🎭 Ocultar MAC / ID máquina / impressão digital — gera valores
-    falsos e aleatórios (MAC, ID, hostname, navegador) por sessão
+  • 🌐 Ocultar IP (automático — gratuito) — estilo Hide My IP:
+      o software procura proxies gratuitos sozinho (1 clique)
+  • Proxy / VPN (manual) — tráfego pela VPN que VOCÊ configurar
+  • 🎭 Ocultar MAC / ID máquina / impressão digital — valores falsos
+
+COMO USAR «OCULTAR IP» (GRATUITO):
+  1. Escolha «🌐 Ocultar IP (automático — gratuito)»
+  2. Clique Pré-visualizar ou Iniciar Extração
+  3. Aguarde 30–60 s enquanto testa proxies
+  4. Quando encontrar um funcional, a extração começa com IP oculto
+
+  • 🎭 Ocultar MAC / ID máquina / impressão digital — valores falsos
 
 IMPORTANTE sobre MAC: sites na internet NÃO recebem o MAC da sua placa
-de rede. Esta opção randomiza a impressão digital visível nos pedidos
-HTTP e no browser (User-Agent, idioma, resolução, etc.).
+de rede. Esta opção randomiza a impressão digital visível nos pedidos HTTP.
 
-IMPORTANTE: O software NÃO inclui VPN gratuita.
-  1. Instale uma VPN à parte (NordVPN, Mullvad, ProtonVPN…)
-  2. Nas definições da VPN, procure proxy SOCKS5
-  3. Escolha «Proxy / VPN» e cole: socks5://127.0.0.1:1080
-
-VPN gratuitas existem (ProtonVPN free) mas com limites.
-VPNs pagas são mais fiáveis para uso regular.
+NOTA: proxies gratuitos podem ser mais lentos. VPN manual é mais fiável.
 
 
 PASSO 5b — JANELA AJUSTÁVEL

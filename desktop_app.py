@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.12."""
+"""Aplicação desktop nativa — Company Email Extractor v2.13."""
 
 from __future__ import annotations
 
@@ -44,12 +44,15 @@ from cnpj_extractor.fingerprint_privacy import (
     profile_summary,
     set_fingerprint_masking,
 )
+from cnpj_extractor.free_proxy_pool import acquire_working_proxy, clear_free_proxy_cache
 from cnpj_extractor.proxy_config import (
     clear_active_proxy,
+    clear_free_proxy_mode,
     is_valid_proxy_url,
     mask_proxy_for_display,
     normalize_proxy_url,
     set_active_proxy,
+    set_free_proxy_mode,
 )
 from cnpj_extractor.sector_filters import (
     get_sector_hint,
@@ -78,10 +81,11 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.12.0"
+APP_VERSION = "2.13.0"
 
 CONNECTION_DIRECT = "Direta (IP normal)"
-CONNECTION_PROXY = "Proxy / VPN (ocultar IP)"
+CONNECTION_AUTO_HIDE = "🌐 Ocultar IP (automático — gratuito)"
+CONNECTION_PROXY = "Proxy / VPN (manual)"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -352,7 +356,7 @@ class CompanyEmailApp(ctk.CTk):
         ctk.CTkOptionMenu(
             privacy,
             variable=self.connection_mode_var,
-            values=[CONNECTION_DIRECT, CONNECTION_PROXY],
+            values=[CONNECTION_DIRECT, CONNECTION_AUTO_HIDE, CONNECTION_PROXY],
             command=self._on_connection_mode_change,
             width=240,
         ).pack(fill="x", padx=10, pady=(0, 4))
@@ -946,14 +950,23 @@ class CompanyEmailApp(ctk.CTk):
             ))
 
     def _on_connection_mode_change(self, choice: str) -> None:
-        use_proxy = choice == CONNECTION_PROXY
-        self.proxy_var.set(use_proxy)
-        if use_proxy:
+        if choice == CONNECTION_PROXY:
+            self.proxy_var.set(True)
             self.proxy_entry.configure(state="normal")
             self._proxy_hint.configure(
-                text="Cole o proxy da SUA VPN (NordVPN, Mullvad…). O software NÃO inclui VPN gratuita.",
+                text="Cole o proxy da SUA VPN (NordVPN, Mullvad…). Para uso manual avançado.",
+            )
+        elif choice == CONNECTION_AUTO_HIDE:
+            self.proxy_var.set(False)
+            self.proxy_entry.configure(state="disabled")
+            self._proxy_hint.configure(
+                text=(
+                    "Estilo Hide My IP: o software procura proxies gratuitos automaticamente. "
+                    "Pode demorar 30–60 s na primeira ligação. Mais lento que VPN paga."
+                ),
             )
         else:
+            self.proxy_var.set(False)
             self.proxy_entry.configure(state="disabled")
             self._proxy_hint.configure(
                 text="Ligação direta — os sites veem o IP da sua internet.",
@@ -979,7 +992,8 @@ class CompanyEmailApp(ctk.CTk):
             clear_fingerprint_masking()
 
     def _validate_proxy_settings(self) -> bool:
-        if self.connection_mode_var.get() != CONNECTION_PROXY:
+        mode = self.connection_mode_var.get()
+        if mode in (CONNECTION_DIRECT, CONNECTION_AUTO_HIDE):
             return True
         raw = self.proxy_url_var.get().strip()
         if not raw:
@@ -1001,8 +1015,36 @@ class CompanyEmailApp(ctk.CTk):
             return False
         return True
 
-    def _activate_proxy_for_extraction(self) -> None:
-        if self.connection_mode_var.get() == CONNECTION_PROXY:
+    def _activate_proxy_for_extraction(self) -> bool:
+        mode = self.connection_mode_var.get()
+        if mode == CONNECTION_AUTO_HIDE:
+            set_free_proxy_mode(True)
+
+            def report(msg: str) -> None:
+                self.after(0, self._set_status, msg)
+
+            url = acquire_working_proxy(max_tries=35, progress_callback=report)
+            if not url:
+                self.after(
+                    0,
+                    messagebox.showwarning,
+                    APP_NAME,
+                    "Não foi possível encontrar um proxy gratuito funcional.\n\n"
+                    "Tente novamente em alguns minutos ou use:\n"
+                    "• Proxy / VPN (manual) com a sua VPN\n"
+                    "• Ligação Direta",
+                )
+                return False
+            set_active_proxy(url)
+            self.after(
+                0,
+                self._set_status,
+                f"🌐 IP oculto (proxy gratuito): {mask_proxy_for_display(url)}",
+            )
+            return True
+
+        set_free_proxy_mode(False)
+        if mode == CONNECTION_PROXY:
             url = normalize_proxy_url(self.proxy_url_var.get())
             set_active_proxy(url)
             self.after(
@@ -1012,6 +1054,7 @@ class CompanyEmailApp(ctk.CTk):
             )
         else:
             clear_active_proxy()
+        return True
 
     def _start_preview(self) -> None:
         if self._extracting:
@@ -1191,7 +1234,9 @@ class CompanyEmailApp(ctk.CTk):
 
     def _run_extraction(self) -> None:
         try:
-            self._activate_proxy_for_extraction()
+            if not self._activate_proxy_for_extraction():
+                self.after(0, self._on_extraction_done_empty)
+                return
             self._activate_fingerprint_for_extraction()
             country_key, source_key, source = self._resolve_source()
             preview = self._is_preview
@@ -1333,6 +1378,8 @@ class CompanyEmailApp(ctk.CTk):
             self.after(0, self._on_extraction_error, str(exc))
         finally:
             clear_active_proxy()
+            clear_free_proxy_mode()
+            clear_free_proxy_cache()
             clear_fingerprint_masking()
 
     def _ask_scraper_url(self) -> str | None:
