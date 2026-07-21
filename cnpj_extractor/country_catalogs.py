@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from cnpj_extractor.sources.base import BaseSource
 
 from cnpj_extractor.catalog_factory import (
     CatalogEntry,
     build_catalog_sources,
     catalog_source_key,
 )
-from cnpj_extractor.sources.base import BaseSource
 
 # ---------------------------------------------------------------------------
 # Espanha
