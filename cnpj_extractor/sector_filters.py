@@ -6,12 +6,14 @@ import re
 SECTOR_LABELS = {
     "BR": "CNAE (setor de atividade)",
     "PT": "CAE / ISIC (setor)",
+    "ES": "CNAE / CAE (setor)",
     "OUTRO": "Código setor (CNAE / CAE / ISIC)",
 }
 
 SECTOR_PLACEHOLDERS = {
     "BR": "Ex: 6202300, 62, 4711 (vários separados por vírgula)",
     "PT": "Ex: 6201, 47, 86 (ISIC Rev.4)",
+    "ES": "Ex: 6201, 47, 86 (CNAE/CAE espanhol)",
     "OUTRO": "Ex: 6201, 62 (prefixo ou código completo)",
 }
 
@@ -22,6 +24,10 @@ SECTOR_HINTS = {
     ),
     "PT": (
         "CAE/ISIC Portugal (campo isicV4 no FIZ):\n"
+        "  62 = TI | 47 = comércio | 86 = saúde | 41 = construção"
+    ),
+    "ES": (
+        "CNAE/CAE Espanha (quando disponível na ficha):\n"
         "  62 = TI | 47 = comércio | 86 = saúde | 41 = construção"
     ),
     "OUTRO": (

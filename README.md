@@ -1,6 +1,6 @@
-# Company Email Extractor v2.7
+# Company Email Extractor v2.8
 
-Software **nativo Windows** para extrair emails e dados de empresas do **Brasil**, **Portugal** e **qualquer site**.
+Software **nativo Windows** para extrair emails e dados de empresas do **Brasil**, **Portugal**, **Espanha** e **qualquer site**.
 
 **Janela própria — sem browser, sem terminal, sem configurar Python.**
 
@@ -18,7 +18,8 @@ O instalador inclui o programa + guias **LEIA-ME.txt** e **COMO_USAR.md**.
 
 ## O que faz (resumo)
 
-- Extrai emails de Receita Federal (BR), FIZ (PT) e sites personalizados
+- Extrai emails de Receita Federal (BR), FIZ (PT), **Empresite e 30+ diretórios (ES)** e sites personalizados
+- **Pré-visualização** — vê emails captados no ecrã antes de gravar ficheiros (v2.8)
 - Limpa emails inválidos, duplicados e lixo automaticamente
 - Grava **CSV**, **TXT** e **SQLite** enquanto extrai (v2.6)
 - Divide em ficheiros de **1000 linhas** (abre no Excel)
@@ -31,7 +32,7 @@ O instalador inclui o programa + guias **LEIA-ME.txt** e **COMO_USAR.md**.
 
 | Ficheiro | Conteúdo |
 |----------|----------|
-| **[COMO_USAR.md](COMO_USAR.md)** | Guia completo v2.6 |
+| **[COMO_USAR.md](COMO_USAR.md)** | Guia completo v2.8 |
 | **[LEIA-ME.txt](LEIA-ME.txt)** | Resumo rápido (vai no instalador) |
 
 ---
@@ -57,4 +58,4 @@ installer\build_setup.bat   # Gera Setup.exe + inclui guias
 
 ## Licença e aviso legal
 
-Use os dados em conformidade com **LGPD** (Brasil) e **RGPD** (Portugal).
+Use os dados em conformidade com **LGPD** (Brasil) e **RGPD** (Portugal/Espanha).

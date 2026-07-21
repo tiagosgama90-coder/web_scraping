@@ -1,11 +1,12 @@
-# Company Email Extractor v2.7 — Guia Completo
+# Company Email Extractor v2.8 — Guia Completo
 
-**Software nativo Windows** para extrair emails e dados de empresas do Brasil, Portugal e qualquer site.
+**Software nativo Windows** para extrair emails e dados de empresas do Brasil, Portugal, **Espanha** e qualquer site.
 
 - Janela própria — **sem browser**, sem terminal, sem instalar Python
+- **Pré-visualização** — vê emails no ecrã antes de gravar ficheiros
 - Grava ficheiros **enquanto extrai** — ideal para milhões de registos
 - Filtra por **setor de atividade** (CNAE / CAE / ISIC)
-- Versão atual: **2.7.0**
+- Versão atual: **2.8.0**
 
 ---
 
@@ -18,11 +19,12 @@
 5. [Como usar — passo a passo](#5-como-usar--passo-a-passo)
 6. [Brasil — milhões de emails](#6-brasil--milhões-de-emails)
 7. [Portugal](#7-portugal)
-8. [Sites e bases personalizadas](#8-sites-e-bases-personalizadas)
-9. [Onde ficam os ficheiros](#9-onde-ficam-os-ficheiros)
-10. [Riscos e como evitar problemas](#10-riscos-e-como-evitar-problemas)
-11. [Problemas comuns](#11-problemas-comuns)
-12. [Avisos legais](#12-avisos-legais)
+8. [Espanha](#8-espanha)
+9. [Sites e bases personalizadas](#9-sites-e-bases-personalizadas)
+10. [Onde ficam os ficheiros](#10-onde-ficam-os-ficheiros)
+11. [Riscos e como evitar problemas](#11-riscos-e-como-evitar-problemas)
+12. [Problemas comuns](#12-problemas-comuns)
+13. [Avisos legais](#13-avisos-legais)
 
 ---
 
@@ -35,6 +37,8 @@
 | 🇧🇷 Brasil | Receita Federal (ZIPs oficiais) | ~67 milhões de empresas |
 | 🇧🇷 Brasil | DadosBrasil API | Consultas por UF |
 | 🇵🇹 Portugal | Diretório FIZ | ~490.000 empresas |
+| 🇪🇸 Espanha | Empresite (sitemap) | ~4 milhões de empresas |
+| 🇪🇸 Espanha | 30+ diretórios (separador Espanha) | eInforma, Axesor, Kompass… |
 | 🌍 Qualquer | Site personalizado (URL/sitemap) | Conforme o site |
 
 ### Limpeza automática de emails
@@ -57,6 +61,7 @@ O programa **limpa sempre** os emails extraídos:
 - Obrigatório ter **email**, **telefone** ou **CNPJ/NIPC**
 - Brasil: filtro por **UF**, apenas empresas **ativas**
 - Portugal: filtro por **distrito**
+- Espanha: filtro por **província** (Empresite)
 - **Setor de atividade** (CNAE / CAE / ISIC) — todos os países
 - Escolha de **campos a exportar** (email, empresa, cnpj, telefone, uf, municipio, etc.)
 
@@ -68,6 +73,7 @@ Filtra empresas por código de atividade económica:
 |------|--------|---------|
 | 🇧🇷 Brasil | **CNAE** | `6202300` = desenvolvimento de software |
 | 🇵🇹 Portugal | **CAE / ISIC** | `6201` = programação informática |
+| 🇪🇸 Espanha | **CNAE / CAE** | `6201` = TI (quando disponível na ficha) |
 | 🌍 Outros | **ISIC** | `47` = comércio, `86` = saúde |
 
 **Como usar:**
@@ -87,6 +93,16 @@ Filtra empresas por código de atividade económica:
 | `56` | Restauração / catering |
 | `85` | Educação |
 | `68` | Imobiliário |
+
+### Pré-visualização (v2.8)
+
+Antes de iniciar uma extração completa, pode **ver o que o software captou**:
+
+1. Configure país, fonte e filtros
+2. Clique **🔍 Pré-visualizar** (número à esquerda = quantos registos, ex: 25)
+3. Os emails aparecem na **tabela** do separador **Extrair**
+4. **Não grava** CSV/SQLite durante a pré-visualização
+5. Se estiver satisfeito → **▶ Iniciar Extração** para gravar ficheiros
 
 ### Gravação em tempo real (v2.6+)
 
@@ -148,7 +164,7 @@ Instala Python portátil na pasta do projeto — não mexe no sistema.
 
 | Opção | Descrição | Recomendação |
 |-------|-----------|--------------|
-| **País** | PT, BR ou OUTRO | Conforme a fonte |
+| **País** | PT, BR, **ES** ou OUTRO | Conforme a fonte |
 | **Fonte de dados** | FIZ, Receita Federal, personalizada… | Ver secção 5 |
 | **Modo** | `limitado` = teste / `automatico` = completo | Teste com limitado |
 | **Limite** | `50` = teste / `0` = sem limite | Começar com 50 |
@@ -164,6 +180,8 @@ Instala Python portátil na pasta do projeto — não mexe no sistema.
 | **Anti-Bot** | Playwright + Cloudflare | ✅ Ativo |
 | **Pasta de downloads** | ZIPs Receita Federal (BR) | Configurável |
 | **Pasta de exportação** | Onde guarda resultados | Configurável |
+| **🔍 Pré-visualizar** | Amostra na tabela sem gravar ficheiros | Antes da extração completa |
+| **▶ Iniciar Extração** | Extração completa + gravação em disco | Depois de validar a amostra |
 
 ### Filtros Brasil (quando País = BR)
 
@@ -183,6 +201,7 @@ Aparece abaixo dos filtros de país. Etiqueta muda automaticamente:
 
 - **BR:** CNAE (setor de atividade)
 - **PT:** CAE / ISIC (setor)
+- **ES:** CNAE / CAE (setor)
 - **OUTRO:** Código setor internacional
 
 ### Botões de exportação (separador Extrair)
@@ -205,6 +224,7 @@ Aparece abaixo dos filtros de país. Etiqueta muda automaticamente:
 | Separador | Conteúdo |
 |-----------|------------|
 | **📊 Extrair** | Tabela, progresso, exportação |
+| **🇪🇸 Espanha** | Catálogo de 30+ diretórios empresariais |
 | **➕ Minhas Fontes** | Adicionar sites/bases personalizadas |
 | **📖 Guia** | Ajuda integrada + teste rápido |
 
@@ -366,7 +386,45 @@ Filtro opcional: **distrito** (ex: Lisboa)
 
 ---
 
-## 8. Sites e bases personalizadas
+## 8. Espanha
+
+Espanha **não tem** uma base pública de emails como a Receita Federal do Brasil. O programa usa **diretórios empresariais** (Empresite, Páginas Amarillas, Kompass, etc.).
+
+### Configuração recomendada
+
+| Opção | Valor |
+|-------|-------|
+| Separador | **🇪🇸 Espanha** → Empresite → **Usar** |
+| Pré-visualizar | **25** registos (ver emails no ecrã) |
+| Província | Opcional (Madrid, Barcelona, Valencia…) |
+| Modo | limitado (teste) / automatico (completo) |
+| Anti-Bot | ✅ Ativo (Empresite usa Cloudflare) |
+| Gravar enquanto extrai | ✅ Para extração completa |
+
+### Fluxo sugerido
+
+```
+1. Separador «Espanha» → escolher fonte → «Usar»
+2. «Pré-visualizar» (25) → rever emails na tabela
+3. «Iniciar Extração» → grava CSV/TXT/SQLite
+```
+
+### Fontes disponíveis (separador Espanha)
+
+| Fonte | Emails esperados | Notas |
+|-------|------------------|-------|
+| **Empresite** | 15–20% | Melhor opção — sitemap ~4M empresas |
+| Páginas Amarillas, QDQ, Cylex | Médio | Guias locais |
+| eInforma, Axesor, Iberinform | Baixo | Maioria paywall |
+| OpenMercantil / BORME | Raro | Dados oficiais, sem emails |
+
+### Filtro província (Empresite)
+
+No campo **Província**, escreva o nome (ex: `Madrid`, `Barcelona`). Filtra URLs do sitemap que contenham esse nome.
+
+---
+
+## 9. Sites e bases personalizadas
 
 ### Adição rápida
 
@@ -392,7 +450,7 @@ C:\Users\TeuNome\AppData\Local\CompanyEmailExtractor\custom_sources.json
 
 ---
 
-## 9. Onde ficam os ficheiros
+## 10. Onde ficam os ficheiros
 
 ### Pastas de trabalho
 
@@ -429,7 +487,7 @@ C:\Users\TeuNome\AppData\Local\Programs\Company Email Extractor\
 
 ---
 
-## 10. Riscos e como evitar problemas
+## 11. Riscos e como evitar problemas
 
 ### Seguro (configuração por defeito v2.6)
 
@@ -452,7 +510,7 @@ C:\Users\TeuNome\AppData\Local\Programs\Company Email Extractor\
 
 ---
 
-## 11. Problemas comuns
+## 12. Problemas comuns
 
 | Problema | Solução |
 |----------|---------|
@@ -467,7 +525,7 @@ C:\Users\TeuNome\AppData\Local\Programs\Company Email Extractor\
 
 ---
 
-## 12. Avisos legais
+## 13. Avisos legais
 
 - Use os dados em conformidade com **LGPD** (Brasil) e **RGPD** (Portugal)
 - Não envie emails em massa sem **consentimento** do destinatário
@@ -487,4 +545,4 @@ C:\Users\TeuNome\AppData\Local\Programs\Company Email Extractor\
 
 ---
 
-*Company Email Extractor v2.7.0 — Guia do utilizador*
+*Company Email Extractor v2.8.0 — Guia do utilizador*
