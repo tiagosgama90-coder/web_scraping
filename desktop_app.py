@@ -89,7 +89,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.14.2"
+APP_VERSION = "2.14.3"
 
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
@@ -372,10 +372,22 @@ class CompanyEmailApp(ctk.CTk):
         self.fingerprint_mask_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             privacy,
-            text="🎭 Ocultar MAC / ID máquina / impressão digital",
+            text="🎭 Randomizar impressão digital do browser",
             variable=self.fingerprint_mask_var,
             command=self._on_fingerprint_mask_change,
             font=ctk.CTkFont(size=11),
+        ).pack(fill="x", padx=10, pady=(0, 2))
+        ctk.CTkLabel(
+            privacy,
+            text=(
+                "Muda User-Agent, idioma e resolução vistos pelos sites. "
+                "Nota: o MAC real da placa NUNCA é enviado à internet."
+            ),
+            font=ctk.CTkFont(size=9),
+            text_color="gray",
+            wraplength=250,
+            justify="left",
+            anchor="w",
         ).pack(fill="x", padx=10, pady=(0, 6))
 
         note_frame = ctk.CTkFrame(privacy, fg_color=("white", "gray14"), corner_radius=6)
@@ -1012,13 +1024,18 @@ class CompanyEmailApp(ctk.CTk):
         lines.append("")
         if self.fingerprint_mask_var.get():
             profile = get_fingerprint_profile() or generate_fingerprint_profile()
-            lines.append("MAC / ID MÁQUINA:  ✅ OCULTO")
-            lines.append(f"  MAC falso:      {profile.fake_mac_address}")
-            lines.append(f"  ID máquina:     {profile.fake_machine_id}")
-            lines.append(f"  Hostname falso: {profile.fake_hostname}")
+            lines.append("IMPRESSÃO DIGITAL:  ✅ RANDOMIZADA")
+            lines.append("  O que os sites veem (aleatório):")
+            lines.append(f"    Browser:  {profile.user_agent[:42]}…")
+            lines.append(f"    Idioma:   {profile.accept_language[:36]}…")
+            lines.append(f"    Ecrã:     {profile.viewport_width}x{profile.viewport_height}")
+            lines.append("")
+            lines.append("  Referência interna (não enviada à internet):")
+            lines.append(f"    MAC ref.:  {profile.fake_mac_address}")
+            lines.append(f"    ID ref.:   {profile.fake_machine_id[:20]}…")
         else:
-            lines.append("MAC / ID MÁQUINA:  ❌ DESATIVADO")
-            lines.append("  (valores reais do sistema visíveis nos pedidos HTTP)")
+            lines.append("IMPRESSÃO DIGITAL:  ❌ DESATIVADA")
+            lines.append("  Browser/idioma/resolução = valores reais do PC")
 
         return "\n".join(lines)
 

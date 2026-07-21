@@ -14,7 +14,7 @@ _current_profile: FingerprintProfile | None = None
 
 @dataclass
 class FingerprintProfile:
-    """Perfil digital aleatório por sessão (não envia MAC real à internet)."""
+    """Perfil digital aleatório — randomiza o que os sites conseguem ver no browser."""
 
     user_agent: str
     accept_language: str
