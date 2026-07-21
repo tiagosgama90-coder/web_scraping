@@ -20,7 +20,7 @@ OUT.parent.mkdir(parents=True, exist_ok=True)
 
 def main() -> None:
     app = CompanyEmailApp()
-    app.tabview.set("📊 Extrair")
+    app.tabview.set("Extrair")
 
     real = IpInfo(
         ip="85.243.12.88",
