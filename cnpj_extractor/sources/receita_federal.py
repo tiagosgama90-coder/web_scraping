@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 import requests
 
+from cnpj_extractor.proxy_config import requests_proxies
 from cnpj_extractor.models import CompanyEmail
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
 from cnpj_extractor.utils import (
@@ -73,7 +74,7 @@ class ReceitaFederalSource(BaseSource):
     )
 
     def list_available_releases(self) -> list[str]:
-        response = requests.get(CASADOS_DADOS_BASE, timeout=30)
+        response = requests.get(CASADOS_DADOS_BASE, timeout=30, proxies=requests_proxies())
         response.raise_for_status()
         folders = re.findall(r'href="(\d{4}-\d{2}-\d{2})/"', response.text)
         return sorted(set(folders))
@@ -125,7 +126,7 @@ class ReceitaFederalSource(BaseSource):
         if temp_output.exists():
             temp_output.unlink(missing_ok=True)
 
-        with requests.get(url, stream=True, timeout=300) as response:
+        with requests.get(url, stream=True, timeout=300, proxies=requests_proxies()) as response:
             response.raise_for_status()
             total = int(response.headers.get("content-length", 0))
             downloaded = 0

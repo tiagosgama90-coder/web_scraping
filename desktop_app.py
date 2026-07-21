@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.9."""
+"""Aplicação desktop nativa — Company Email Extractor v2.10."""
 
 from __future__ import annotations
 
@@ -39,6 +39,13 @@ from cnpj_extractor.field_filters import (
     filter_records_by_requirements,
 )
 from cnpj_extractor.gui_text import ADD_SOURCE_HELP, GUIDE_TEXT
+from cnpj_extractor.proxy_config import (
+    clear_active_proxy,
+    is_valid_proxy_url,
+    mask_proxy_for_display,
+    normalize_proxy_url,
+    set_active_proxy,
+)
 from cnpj_extractor.sector_filters import (
     get_sector_hint,
     get_sector_label,
@@ -66,7 +73,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.9.0"
+APP_VERSION = "2.10.0"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -220,7 +227,7 @@ class CompanyEmailApp(ctk.CTk):
         # Sidebar
         sidebar = ctk.CTkFrame(self, width=300, corner_radius=0)
         sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_rowconfigure(21, weight=1)
+        sidebar.grid_rowconfigure(22, weight=1)
 
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
@@ -322,10 +329,35 @@ class CompanyEmailApp(ctk.CTk):
             sidebar,
             text="🛡 Anti-Bot (Playwright + Cloudflare)",
             variable=self.antibot_var,
-        ).grid(row=20, column=0, padx=20, pady=6, sticky="w")
+        ).grid(row=20, column=0, padx=20, pady=(6, 2), sticky="w")
+
+        proxy_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        proxy_frame.grid(row=21, column=0, padx=20, pady=(0, 4), sticky="ew")
+        self.proxy_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            proxy_frame,
+            text="🔒 Proxy / VPN (ocultar IP)",
+            variable=self.proxy_var,
+            font=ctk.CTkFont(size=11),
+        ).pack(anchor="w")
+        self.proxy_url_var = ctk.StringVar(value="")
+        ctk.CTkEntry(
+            proxy_frame,
+            textvariable=self.proxy_url_var,
+            placeholder_text="socks5://user:pass@host:port",
+            font=ctk.CTkFont(size=11),
+        ).pack(fill="x", pady=(4, 0))
+        ctk.CTkLabel(
+            proxy_frame,
+            text="Use o proxy da sua VPN (NordVPN, Mullvad, etc.)",
+            font=ctk.CTkFont(size=10),
+            text_color="gray",
+            wraplength=250,
+            anchor="w",
+        ).pack(anchor="w")
 
         paths = ctk.CTkFrame(sidebar, fg_color="transparent")
-        paths.grid(row=21, column=0, padx=20, sticky="ew")
+        paths.grid(row=22, column=0, padx=20, sticky="ew")
         ctk.CTkLabel(paths, text="Pasta de downloads (BR/RFB)", anchor="w").pack(fill="x")
         self.data_dir_var = ctk.StringVar(value=str(DEFAULT_DATA_DIR))
         data_row = ctk.CTkFrame(paths, fg_color="transparent")
@@ -341,7 +373,7 @@ class CompanyEmailApp(ctk.CTk):
         ctk.CTkButton(export_row, text="📂", width=36, command=self._browse_export_dir).pack(side="right")
 
         preview_row = ctk.CTkFrame(sidebar, fg_color="transparent")
-        preview_row.grid(row=22, column=0, padx=20, pady=(8, 0), sticky="ew")
+        preview_row.grid(row=23, column=0, padx=20, pady=(8, 0), sticky="ew")
         self.preview_count_var = ctk.StringVar(value="25")
         ctk.CTkEntry(preview_row, textvariable=self.preview_count_var, width=44).pack(side="left", padx=(0, 6))
         self.preview_btn = ctk.CTkButton(
@@ -359,19 +391,19 @@ class CompanyEmailApp(ctk.CTk):
             font=ctk.CTkFont(size=10),
             text_color="gray",
             wraplength=260,
-        ).grid(row=23, column=0, padx=20, pady=(2, 0), sticky="w")
+        ).grid(row=24, column=0, padx=20, pady=(2, 0), sticky="w")
 
         self.start_btn = ctk.CTkButton(sidebar, text="▶  Iniciar Extração", height=44,
                                        font=ctk.CTkFont(size=15, weight="bold"),
                                        command=self._start_extraction)
-        self.start_btn.grid(row=24, column=0, padx=20, pady=(8, 4), sticky="ew")
+        self.start_btn.grid(row=25, column=0, padx=20, pady=(8, 4), sticky="ew")
 
         self.stop_btn = ctk.CTkButton(sidebar, text="⏹  Parar", height=36, fg_color="#c0392b",
                                      hover_color="#962d22", command=self._stop_extraction, state="disabled")
-        self.stop_btn.grid(row=25, column=0, padx=20, pady=(4, 12), sticky="ew")
+        self.stop_btn.grid(row=26, column=0, padx=20, pady=(4, 12), sticky="ew")
 
         ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=26, column=0, padx=20, pady=(0, 16), sticky="ew")
+                      command=lambda: self.tabview.set("📖 Guia")).grid(row=27, column=0, padx=20, pady=(0, 16), sticky="ew")
 
         # Main tabs
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
@@ -861,8 +893,45 @@ class CompanyEmailApp(ctk.CTk):
                 row.get("email", ""), row.get("municipio", "")[:20], row.get("fonte", "")[:25],
             ))
 
+    def _validate_proxy_settings(self) -> bool:
+        if not self.proxy_var.get():
+            return True
+        raw = self.proxy_url_var.get().strip()
+        if not raw:
+            messagebox.showwarning(
+                APP_NAME,
+                "Ativou «Proxy / VPN» mas não indicou o endereço.\n\n"
+                "Exemplo: socks5://127.0.0.1:1080\n"
+                "Ou o proxy HTTP da sua VPN.",
+            )
+            return False
+        if not is_valid_proxy_url(raw):
+            messagebox.showwarning(
+                APP_NAME,
+                "Endereço de proxy inválido.\n\n"
+                "Formatos aceites:\n"
+                "  http://host:port\n"
+                "  socks5://user:pass@host:port",
+            )
+            return False
+        return True
+
+    def _activate_proxy_for_extraction(self) -> None:
+        if self.proxy_var.get():
+            url = normalize_proxy_url(self.proxy_url_var.get())
+            set_active_proxy(url)
+            self.after(
+                0,
+                self._set_status,
+                f"🔒 Proxy ativo: {mask_proxy_for_display(url)}",
+            )
+        else:
+            clear_active_proxy()
+
     def _start_preview(self) -> None:
         if self._extracting:
+            return
+        if not self._validate_proxy_settings():
             return
         try:
             preview_n = int(self.preview_count_var.get().strip() or "25")
@@ -888,6 +957,8 @@ class CompanyEmailApp(ctk.CTk):
 
     def _start_extraction(self) -> None:
         if self._extracting:
+            return
+        if not self._validate_proxy_settings():
             return
         self._extracting = True
         self._is_preview = False
@@ -1035,6 +1106,7 @@ class CompanyEmailApp(ctk.CTk):
 
     def _run_extraction(self) -> None:
         try:
+            self._activate_proxy_for_extraction()
             country_key, source_key, source = self._resolve_source()
             preview = self._is_preview
             max_text = self.max_var.get().strip()
@@ -1173,6 +1245,8 @@ class CompanyEmailApp(ctk.CTk):
             self.after(0, self._on_extraction_done)
         except Exception as exc:
             self.after(0, self._on_extraction_error, str(exc))
+        finally:
+            clear_active_proxy()
 
     def _ask_scraper_url(self) -> str | None:
         result: list[str | None] = [None]
