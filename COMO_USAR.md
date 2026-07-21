@@ -1,8 +1,8 @@
-# Company Email Extractor v2.13 — Guia Completo
+# Company Email Extractor v2.14 — Guia Completo
 
 **Software nativo Windows** para extrair emails e dados de empresas de **19 países** e qualquer site.
 
-- Versão atual: **2.13.0**
+- Versão atual: **2.14.0**
 - Download: https://github.com/tiagosgama90-coder/web_scraping/releases/latest
 - Ficheiro: `CompanyEmailExtractor-Setup.exe`
 
@@ -74,14 +74,14 @@
 30. Usa curl_cffi, cloudscraper e **Playwright** (browser real)
 31. Ativo por defeito — pode desligar na barra lateral
 
-### G) Privacidade — escolha do utilizador
+### G) Hide My IP — integrado no software
 
-32. **Ligação Direta** — tráfego com o IP normal da sua internet (predefinição)
-33. **🌐 Ocultar IP (automático — gratuito)** — estilo **Hide My IP**: procura proxies gratuitos sozinho
-34. **Proxy / VPN (manual)** — tráfego passa pelo proxy que **você** configurar
-35. Funciona com HTTP, HTTPS e SOCKS5 (modo manual)
-36. **🎭 Ocultar MAC / ID máquina / impressão digital** — valores falsos por sessão
-37. Rotação automática de proxy se o atual falhar (modo Ocultar IP)
+32. **Ocultar IP** — vem **ligado por defeito** (igual extensão Hide My IP do Chrome)
+33. **Zero instalação extra** — não precisa VPN, extensão Chrome nem proxy manual
+34. Prepara IP oculto **automaticamente** ao abrir o programa
+35. **Ocultar MAC / ID máquina / impressão digital** — também ativo por defeito
+36. Rotação automática se o servidor anónimo falhar
+37. Para usar IP normal: desmarque «Ocultar IP» na barra lateral
 
 ### H) Janela ajustável
 
@@ -112,41 +112,24 @@
 
 ---
 
-## 2. O que é VPN/Proxy e é gratuita?
+## 2. Hide My IP — como funciona?
 
-### O que é uma VPN?
+### Está integrado no software?
 
-Uma **VPN** (Virtual Private Network) cria um túnel encriptado entre o seu PC e um servidor noutro país. Os sites veem o **IP do servidor VPN**, não o IP da sua casa.
+**Sim.** Igual à extensão **Hide My IP** do Chrome, mas **dentro do programa** — não precisa instalar nada à parte.
 
-### O que é um Proxy?
+| O que faz | Como |
+|-----------|------|
+| **Ocultar IP** | Ligado por defeito — os sites não veem o IP da sua casa |
+| **Preparação automática** | Ao abrir o software, prepara servidor anónimo em segundo plano |
+| **Ocultar impressão digital** | MAC, ID máquina e browser falsos — também ativo por defeito |
+| **Desativar** | Desmarque «Ocultar IP» na barra lateral |
 
-Um **proxy** é um intermediário — o software envia pedidos ao proxy, e o proxy contacta o site. O site vê o IP do proxy.
+### Preciso instalar VPN ou extensão Chrome?
 
-### O software inclui VPN gratuita?
+**Não.** Tudo funciona dentro do `CompanyEmailExtractor.exe`.
 
-**Sim — modo automático.** Escolha **🌐 Ocultar IP (automático — gratuito)** na barra lateral.
-
-| Modo | O que acontece |
-|------|----------------|
-| **Direta (IP normal)** | Ligação normal — sites veem o IP da sua internet |
-| **🌐 Ocultar IP (automático)** | O software procura e testa **proxies gratuitos** na internet (estilo Hide My IP) |
-| **Proxy / VPN (manual)** | Você cola o endereço do proxy **da sua VPN** |
-
-### Como usar «Ocultar IP» (1 clique)
-
-1. Na barra lateral: **Privacidade** → **🌐 Ocultar IP (automático — gratuito)**
-2. Clique **🔍 Pré-visualizar** ou **▶ Iniciar Extração**
-3. Aguarde **30–60 segundos** enquanto o software testa proxies
-4. Quando encontrar um funcional, a extração começa com IP oculto
-5. Se o proxy falhar durante a extração, o software tenta outro automaticamente
-
-### Limitações dos proxies gratuitos
-
-- Podem ser **mais lentos** que VPN paga
-- Nem sempre funcionam (depende da lista pública do dia)
-- Se falhar, tente novamente ou use **Proxy/VPN manual**
-
-### VPN manual (opcional, mais fiável)
+### Opções avançadas (opcional)
 
 Existem VPNs gratuitas (ProtonVPN free, Windscribe free, etc.), mas:
 
@@ -215,8 +198,7 @@ Documentos\CompanyEmailExtractor\
 | **Gravar enquanto extrai** | CSV/TXT em tempo real |
 | **SQLite em tempo real** | Base de dados durante extração |
 | **Anti-Bot** | Playwright + Cloudflare |
-| **Privacidade — ligação** | **Direta**, **Ocultar IP automático** ou **Proxy manual** |
-| **🎭 Ocultar impressão digital** | MAC/ID/hostname falsos + browser aleatório |
+| **Hide My IP** | **Ligado por defeito** — desmarque para IP normal |
 | **Janela** | Redimensionável — arraste os cantos |
 | **🔍 Pré-visualizar** | Amostra na tabela sem gravar |
 | **▶ Iniciar Extração** | Extração completa + gravação |
@@ -361,4 +343,4 @@ C:\Users\SeuNome\AppData\Local\CompanyEmailExtractor\custom_sources.json
 
 ---
 
-*Company Email Extractor v2.13.0 — Guia do utilizador*
+*Company Email Extractor v2.14.0 — Guia do utilizador*

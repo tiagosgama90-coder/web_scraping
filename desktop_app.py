@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.13."""
+"""Aplicação desktop nativa — Company Email Extractor v2.14."""
 
 from __future__ import annotations
 
@@ -44,7 +44,12 @@ from cnpj_extractor.fingerprint_privacy import (
     profile_summary,
     set_fingerprint_masking,
 )
-from cnpj_extractor.free_proxy_pool import acquire_working_proxy, clear_free_proxy_cache
+from cnpj_extractor.free_proxy_pool import (
+    acquire_working_proxy,
+    clear_free_proxy_cache,
+    get_cached_working_proxy,
+    prewarm_proxy_pool,
+)
 from cnpj_extractor.proxy_config import (
     clear_active_proxy,
     clear_free_proxy_mode,
@@ -81,11 +86,8 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.13.0"
+APP_VERSION = "2.14.0"
 
-CONNECTION_DIRECT = "Direta (IP normal)"
-CONNECTION_AUTO_HIDE = "🌐 Ocultar IP (automático — gratuito)"
-CONNECTION_PROXY = "Proxy / VPN (manual)"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -227,6 +229,9 @@ class CompanyEmailApp(ctk.CTk):
         self._refresh_custom_sources()
         self._on_country_change()
         self._show_welcome_if_first_run()
+        self._start_hide_ip_prewarm()
+        if self.fingerprint_mask_var.get():
+            self._on_fingerprint_mask_change()
 
     def _show_welcome_if_first_run(self) -> None:
         if not load_custom_sources():
@@ -348,39 +353,29 @@ class CompanyEmailApp(ctk.CTk):
         privacy.grid(row=21, column=0, padx=16, pady=(0, 6), sticky="ew")
         ctk.CTkLabel(
             privacy,
-            text="🔒 Privacidade — ligação e identidade",
+            text="🌐 Hide My IP — integrado no software",
             font=ctk.CTkFont(size=12, weight="bold"),
             anchor="w",
         ).pack(fill="x", padx=10, pady=(8, 4))
-        self.connection_mode_var = ctk.StringVar(value=CONNECTION_DIRECT)
-        ctk.CTkOptionMenu(
+        self.hide_ip_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
             privacy,
-            variable=self.connection_mode_var,
-            values=[CONNECTION_DIRECT, CONNECTION_AUTO_HIDE, CONNECTION_PROXY],
-            command=self._on_connection_mode_change,
-            width=240,
-        ).pack(fill="x", padx=10, pady=(0, 4))
-        self.proxy_var = ctk.BooleanVar(value=False)
-        self.proxy_url_var = ctk.StringVar(value="")
-        self.proxy_entry = ctk.CTkEntry(
+            text="Ocultar IP (ativado)",
+            variable=self.hide_ip_var,
+            command=self._on_hide_ip_toggle,
+            font=ctk.CTkFont(size=13, weight="bold"),
+        ).pack(fill="x", padx=10, pady=(0, 2))
+        self._hide_ip_status = ctk.CTkLabel(
             privacy,
-            textvariable=self.proxy_url_var,
-            placeholder_text="socks5://127.0.0.1:1080",
-            font=ctk.CTkFont(size=11),
-            state="disabled",
-        )
-        self.proxy_entry.pack(fill="x", padx=10, pady=(0, 4))
-        self._proxy_hint = ctk.CTkLabel(
-            privacy,
-            text="Direta: usa o seu IP. Proxy: tráfego pela VPN (configure abaixo).",
+            text="Integrado — não precisa instalar VPN nem extensão Chrome.",
             font=ctk.CTkFont(size=10),
             text_color="gray",
             wraplength=250,
             justify="left",
             anchor="w",
         )
-        self._proxy_hint.pack(fill="x", padx=10, pady=(0, 6))
-        self.fingerprint_mask_var = ctk.BooleanVar(value=False)
+        self._hide_ip_status.pack(fill="x", padx=10, pady=(0, 6))
+        self.fingerprint_mask_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             privacy,
             text="🎭 Ocultar MAC / ID máquina / impressão digital",
@@ -388,29 +383,43 @@ class CompanyEmailApp(ctk.CTk):
             command=self._on_fingerprint_mask_change,
             font=ctk.CTkFont(size=11),
         ).pack(fill="x", padx=10, pady=(0, 4))
-        self._fingerprint_hint = ctk.CTkLabel(
-            privacy,
-            text=(
-                "Gera valores falsos e aleatórios por sessão (MAC, ID, hostname, "
-                "navegador). Sites não recebem o MAC real — só identificadores HTTP."
-            ),
-            font=ctk.CTkFont(size=10),
-            text_color="gray",
-            wraplength=250,
-            justify="left",
-            anchor="w",
-        )
-        self._fingerprint_hint.pack(fill="x", padx=10, pady=(0, 4))
         self._fingerprint_summary = ctk.CTkLabel(
             privacy,
-            text="Desativado — impressão digital normal do sistema.",
+            text="Proteção digital ativa com Hide My IP.",
             font=ctk.CTkFont(size=10),
             text_color="#1a5276",
             wraplength=250,
             justify="left",
             anchor="w",
         )
-        self._fingerprint_summary.pack(fill="x", padx=10, pady=(0, 8))
+        self._fingerprint_summary.pack(fill="x", padx=10, pady=(0, 6))
+        self.advanced_proxy_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(
+            privacy,
+            text="Opções avançadas: proxy manual",
+            variable=self.advanced_proxy_var,
+            command=self._on_advanced_proxy_toggle,
+            font=ctk.CTkFont(size=10),
+        ).pack(fill="x", padx=10, pady=(0, 2))
+        self._advanced_frame = ctk.CTkFrame(privacy, fg_color="transparent")
+        self.proxy_url_var = ctk.StringVar(value="")
+        self.proxy_entry = ctk.CTkEntry(
+            self._advanced_frame,
+            textvariable=self.proxy_url_var,
+            placeholder_text="socks5://127.0.0.1:1080 (opcional)",
+            font=ctk.CTkFont(size=11),
+            state="disabled",
+        )
+        self.proxy_entry.pack(fill="x", padx=10, pady=(0, 4))
+        ctk.CTkLabel(
+            privacy,
+            text="Só use proxy manual se souber o que está a fazer.",
+            font=ctk.CTkFont(size=9),
+            text_color="gray",
+            wraplength=250,
+            justify="left",
+            anchor="w",
+        ).pack(fill="x", padx=10, pady=(0, 8))
 
         paths = ctk.CTkFrame(sidebar, fg_color="transparent")
         paths.grid(row=22, column=0, padx=20, sticky="ew")
@@ -949,28 +958,41 @@ class CompanyEmailApp(ctk.CTk):
                 row.get("email", ""), row.get("municipio", "")[:20], row.get("fonte", "")[:25],
             ))
 
-    def _on_connection_mode_change(self, choice: str) -> None:
-        if choice == CONNECTION_PROXY:
-            self.proxy_var.set(True)
-            self.proxy_entry.configure(state="normal")
-            self._proxy_hint.configure(
-                text="Cole o proxy da SUA VPN (NordVPN, Mullvad…). Para uso manual avançado.",
+    def _start_hide_ip_prewarm(self) -> None:
+        if self.hide_ip_var.get() and not self._uses_manual_proxy():
+            threading.Thread(target=self._prewarm_hide_ip_worker, daemon=True).start()
+
+    def _prewarm_hide_ip_worker(self) -> None:
+        def report(msg: str) -> None:
+            self.after(0, self._hide_ip_status.configure, {"text": msg})
+
+        prewarm_proxy_pool(max_tries=18, progress_callback=report)
+
+    def _uses_manual_proxy(self) -> bool:
+        return self.advanced_proxy_var.get() and bool(self.proxy_url_var.get().strip())
+
+    def _on_hide_ip_toggle(self) -> None:
+        if self.hide_ip_var.get():
+            self._hide_ip_status.configure(
+                text="Hide My IP ativo — integrado, sem instalar nada.",
             )
-        elif choice == CONNECTION_AUTO_HIDE:
-            self.proxy_var.set(False)
-            self.proxy_entry.configure(state="disabled")
-            self._proxy_hint.configure(
-                text=(
-                    "Estilo Hide My IP: o software procura proxies gratuitos automaticamente. "
-                    "Pode demorar 30–60 s na primeira ligação. Mais lento que VPN paga."
-                ),
-            )
+            self._start_hide_ip_prewarm()
         else:
-            self.proxy_var.set(False)
-            self.proxy_entry.configure(state="disabled")
-            self._proxy_hint.configure(
-                text="Ligação direta — os sites veem o IP da sua internet.",
+            self._hide_ip_status.configure(
+                text="Desativado — os sites veem o IP da sua internet.",
             )
+
+    def _on_advanced_proxy_toggle(self) -> None:
+        if self.advanced_proxy_var.get():
+            self._advanced_frame.pack(fill="x", pady=(0, 2))
+            self.proxy_entry.configure(state="normal")
+            self.hide_ip_var.set(False)
+            self._hide_ip_status.configure(text="Modo manual — cole o endereço do proxy abaixo.")
+        else:
+            self._advanced_frame.pack_forget()
+            self.proxy_entry.configure(state="disabled")
+            self.hide_ip_var.set(True)
+            self._on_hide_ip_toggle()
 
     def _on_fingerprint_mask_change(self) -> None:
         if self.fingerprint_mask_var.get():
@@ -992,16 +1014,14 @@ class CompanyEmailApp(ctk.CTk):
             clear_fingerprint_masking()
 
     def _validate_proxy_settings(self) -> bool:
-        mode = self.connection_mode_var.get()
-        if mode in (CONNECTION_DIRECT, CONNECTION_AUTO_HIDE):
+        if not self._uses_manual_proxy():
             return True
         raw = self.proxy_url_var.get().strip()
         if not raw:
             messagebox.showwarning(
                 APP_NAME,
-                "Ativou «Proxy / VPN» mas não indicou o endereço.\n\n"
-                "Exemplo: socks5://127.0.0.1:1080\n"
-                "Ou o proxy HTTP da sua VPN.",
+                "Ativou proxy manual mas não indicou o endereço.\n\n"
+                "Ou desative «Opções avançadas» e use Hide My IP integrado.",
             )
             return False
         if not is_valid_proxy_url(raw):
@@ -1016,44 +1036,43 @@ class CompanyEmailApp(ctk.CTk):
         return True
 
     def _activate_proxy_for_extraction(self) -> bool:
-        mode = self.connection_mode_var.get()
-        if mode == CONNECTION_AUTO_HIDE:
+        if self._uses_manual_proxy():
+            set_free_proxy_mode(False)
+            url = normalize_proxy_url(self.proxy_url_var.get())
+            set_active_proxy(url)
+            self.after(0, self._set_status, f"🔒 Proxy manual: {mask_proxy_for_display(url)}")
+            return True
+
+        if self.hide_ip_var.get():
             set_free_proxy_mode(True)
 
             def report(msg: str) -> None:
+                self.after(0, self._hide_ip_status.configure, {"text": msg})
                 self.after(0, self._set_status, msg)
 
-            url = acquire_working_proxy(max_tries=35, progress_callback=report)
+            url = get_cached_working_proxy()
+            if not url:
+                url = acquire_working_proxy(max_tries=35, progress_callback=report)
             if not url:
                 self.after(
                     0,
                     messagebox.showwarning,
                     APP_NAME,
-                    "Não foi possível encontrar um proxy gratuito funcional.\n\n"
-                    "Tente novamente em alguns minutos ou use:\n"
-                    "• Proxy / VPN (manual) com a sua VPN\n"
-                    "• Ligação Direta",
+                    "Hide My IP: não encontrou servidor anónimo agora.\n\n"
+                    "Tente novamente em 1 minuto ou desative temporariamente.",
                 )
                 return False
             set_active_proxy(url)
             self.after(
                 0,
-                self._set_status,
-                f"🌐 IP oculto (proxy gratuito): {mask_proxy_for_display(url)}",
+                self._hide_ip_status.configure,
+                {"text": f"✅ IP oculto: {mask_proxy_for_display(url)}"},
             )
+            self.after(0, self._set_status, f"🌐 Hide My IP ativo: {mask_proxy_for_display(url)}")
             return True
 
         set_free_proxy_mode(False)
-        if mode == CONNECTION_PROXY:
-            url = normalize_proxy_url(self.proxy_url_var.get())
-            set_active_proxy(url)
-            self.after(
-                0,
-                self._set_status,
-                f"🔒 Proxy ativo: {mask_proxy_for_display(url)}",
-            )
-        else:
-            clear_active_proxy()
+        clear_active_proxy()
         return True
 
     def _start_preview(self) -> None:

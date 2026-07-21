@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.13 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.14 — LEIA-ME
 ================================================================================
 
 DOWNLOAD
@@ -12,6 +12,22 @@ INSTALACAO
 1. Execute CompanyEmailExtractor-Setup.exe
 2. Seguinte -> Instalar -> Concluir
 3. Abra pelo Menu Iniciar
+4. NAO precisa instalar VPN nem extensao Chrome — Hide My IP ja vem dentro
+
+================================================================================
+  HIDE MY IP — INTEGRADO (IGUAL EXTENSAO CHROME)
+================================================================================
+
+  • Vem LIGADO por defeito
+  • Marque/desmarque «Ocultar IP» na barra lateral
+  • O software esconde o IP sozinho — zero configuracao
+  • Tambem oculta MAC / ID maquina / impressao digital
+  • Ao abrir, prepara IP oculto em segundo plano
+
+  NAO PRECISA:
+    x Instalar VPN (NordVPN, ProtonVPN...)
+    x Instalar extensao Hide My IP no Chrome
+    x Colar enderecos de proxy
 
 ================================================================================
   TUDO O QUE O PROGRAMA FAZ (RESUMO)
@@ -21,90 +37,38 @@ EXTRACAO
   1. Extrai emails e dados de empresas (19 paises + sites)
   2. Brasil: Receita Federal (~67M empresas, dados oficiais)
   3. Portugal: FIZ (~490k empresas)
-  4. 16 paises: ES, FR, DE, IT, GB, MX, AR, CO, CL, PE, US, CA, NL, BE, PL, RO
+  4. 16 paises com diretorios empresariais
   5. Sites personalizados (URL, sitemap, lista de links)
-  6. Separador "Diretorios" com todas as fontes por pais
 
-LIMPEZA
-  7. Remove emails invalidos, duplicados e lixo (noreply, etc.)
-  8. Normaliza para minusculas
-
-FILTROS
-  9. Obrigatorio ter email / telefone / CNPJ
-  10. Filtro por setor (CNAE, CAE, NACE, NAICS)
-  11. Brasil: UF, empresas ativas, UF por UF
-  12. Portugal: distrito | Outros paises: regiao
+PRIVACIDADE INTEGRADA
+  6. Hide My IP — ocultar IP (ativado por defeito)
+  7. Ocultar MAC / ID maquina / impressao digital
+  8. Tudo dentro do software — nada para instalar a parte
 
 PRE-VISUALIZAR
-  13. Ve emails no ecra ANTES de gravar ficheiros
-  14. Botao "Pre-visualizar" (amostra, ex: 25)
-  15. Depois: "Iniciar Extracao" para gravar tudo
+  9. Ve emails no ecra ANTES de gravar ficheiros
+  10. Botao "Pre-visualizar" (amostra, ex: 25)
 
 GRAVACAO
-  16. Grava CSV, TXT e SQLite ENQUANTO extrai
-  17. Ficheiros de 1000 linhas (abre no Excel)
-  18. Brasil: pasta separada por UF (SP, RJ, MG...)
-
-PRIVACIDADE (SUA ESCOLHA)
-  19. "Direta (IP normal)" — ligacao normal (predefinido)
-  20. "Ocultar IP (automatico — gratuito)" — estilo HIDE MY IP (1 clique)
-  21. "Proxy / VPN (manual)" — trafego pela SUA VPN
-  22. "Ocultar MAC / ID maquina" — valores falsos aleatorios
-
-OCULTAR IP AUTOMATICO (GRATUITO)
-  1. Privacidade -> "Ocultar IP (automatico — gratuito)"
-  2. Clique Pre-visualizar ou Iniciar Extracao
-  3. Aguarde 30-60 s (testa proxies gratuitos)
-  4. Extracao com IP oculto — troca proxy se falhar
-
-JANELA
-  24. Redimensionavel — arraste os cantos para ajustar ao ecra
+  11. Grava CSV, TXT e SQLite ENQUANTO extrai
+  12. Ficheiros de 1000 linhas (abre no Excel)
 
 ANTI-BOT
-  25. Contorna Cloudflare e protecoes (Playwright)
-  26. Ativo por defeito
+  13. Contorna Cloudflare e protecoes (Playwright)
 
 EXPORTACAO
-  27. CSV filtrado, emails .txt, SQLite, marketing
-  28. NAO envia emails — so extrai e exporta
-
-O QUE NAO FAZ
-  29. Nao recolhe os seus dados pessoais
-  30. Nao garante 100% de emails em todos os sites
-  31. Proxies gratuitos podem falhar ou ser lentos
-
-================================================================================
-  VPN / PROXY — COMO FUNCIONA?
-================================================================================
-
-MODO GRATUITO (1 CLIQUE — ESTILO HIDE MY IP):
-  - Escolha "Ocultar IP (automatico — gratuito)"
-  - O software procura e testa proxies gratuitos sozinho
-  - Aguarde 30-60 segundos na primeira ligacao
-
-MODO MANUAL (VPN PAGA — MAIS FIAVEL):
-  - Modo "Proxy / VPN (manual)"
-  - Cole o proxy da sua VPN (ex: socks5://127.0.0.1:1080)
-
-MODO DIRETO:
-  - Usa o IP normal da sua internet
-
-VPN MANUAL (opcional, mais fiavel que proxies gratuitos):
-  1. Instale e ligue a SUA VPN (NordVPN, Mullvad, ProtonVPN...)
-  2. No software: Privacidade -> "Proxy / VPN (manual)"
-  3. Cole: socks5://127.0.0.1:1080 (exemplo)
-  4. Inicie extracao
+  14. CSV filtrado, emails .txt, SQLite, marketing
+  15. NAO envia emails — so extrai e exporta
 
 ================================================================================
   INICIO RAPIDO
 ================================================================================
 
-1. Abra o programa
+1. Abra o programa (Hide My IP ja vem ligado)
 2. Pais: PT | Fonte: FIZ | Limite: 50
-3. Privacidade: "Ocultar IP (automatico)" OU Direta OU Proxy manual
-4. Pre-visualizar (25) -> ver emails
-5. Iniciar Extracao
-6. Ficheiros em: Documentos\CompanyEmailExtractor\export\
+3. Pre-visualizar (25) -> ver emails
+4. Iniciar Extracao
+5. Ficheiros em: Documentos\CompanyEmailExtractor\export\
 
 GUIA COMPLETO: COMO_USAR.md (nesta pasta apos instalar)
 CODIGO: https://github.com/tiagosgama90-coder/web_scraping
