@@ -73,7 +73,8 @@ PASSO 6 — INICIAR E EXPORTAR
   1. Clique "▶ Iniciar Extração"
   2. Veja os resultados na tabela
   3. O CSV filtrado é guardado na pasta de exportação (se ativo)
-  4. Ou use: CSV filtrado | Guardar na pasta | Só emails | Marketing
+  4. Por defeito divide em ficheiros de 1000 linhas (abre no Excel)
+  5. Ou use: CSV filtrado | Guardar na pasta | Só emails | Emails .txt
 
 
 ADICIONAR NOVO SITE RAPIDAMENTE

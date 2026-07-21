@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.4."""
+"""Aplicação desktop nativa — Company Email Extractor v2.5."""
 
 from __future__ import annotations
 
@@ -21,10 +21,15 @@ from cnpj_extractor.custom_sources import (
     parse_url_list,
 )
 from cnpj_extractor.database import (
+    CHUNK_SIZE_DEFAULT,
+    ChunkExportResult,
     export_csv,
     export_emails_for_marketing_csv,
     export_emails_only_csv,
+    export_emails_only_csv_chunked,
+    export_emails_txt_chunked,
     export_filtered_csv,
+    export_filtered_csv_chunked,
     export_sqlite,
 )
 from cnpj_extractor.email_validator import filter_records_with_mx
@@ -46,7 +51,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.4.0"
+APP_VERSION = "2.5.0"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -195,7 +200,7 @@ class CompanyEmailApp(ctk.CTk):
         # Sidebar
         sidebar = ctk.CTkFrame(self, width=300, corner_radius=0)
         sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_rowconfigure(18, weight=1)
+        sidebar.grid_rowconfigure(19, weight=1)
 
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
@@ -258,15 +263,28 @@ class CompanyEmailApp(ctk.CTk):
             variable=self.auto_export_var,
         ).grid(row=16, column=0, padx=20, pady=2, sticky="w")
 
+        chunk_row = ctk.CTkFrame(sidebar, fg_color="transparent")
+        chunk_row.grid(row=17, column=0, padx=20, pady=(2, 4), sticky="ew")
+        self.chunk_export_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            chunk_row,
+            text="Dividir exportação",
+            variable=self.chunk_export_var,
+            font=ctk.CTkFont(size=11),
+        ).pack(side="left")
+        self.chunk_size_var = ctk.StringVar(value=str(CHUNK_SIZE_DEFAULT))
+        ctk.CTkEntry(chunk_row, textvariable=self.chunk_size_var, width=56).pack(side="left", padx=(6, 4))
+        ctk.CTkLabel(chunk_row, text="linhas/ficheiro", font=ctk.CTkFont(size=11), text_color="gray").pack(side="left")
+
         self.antibot_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             sidebar,
             text="🛡 Anti-Bot (Playwright + Cloudflare)",
             variable=self.antibot_var,
-        ).grid(row=17, column=0, padx=20, pady=6, sticky="w")
+        ).grid(row=18, column=0, padx=20, pady=6, sticky="w")
 
         paths = ctk.CTkFrame(sidebar, fg_color="transparent")
-        paths.grid(row=18, column=0, padx=20, sticky="ew")
+        paths.grid(row=19, column=0, padx=20, sticky="ew")
         ctk.CTkLabel(paths, text="Pasta de downloads (BR/RFB)", anchor="w").pack(fill="x")
         self.data_dir_var = ctk.StringVar(value=str(DEFAULT_DATA_DIR))
         data_row = ctk.CTkFrame(paths, fg_color="transparent")
@@ -284,14 +302,14 @@ class CompanyEmailApp(ctk.CTk):
         self.start_btn = ctk.CTkButton(sidebar, text="▶  Iniciar Extração", height=44,
                                        font=ctk.CTkFont(size=15, weight="bold"),
                                        command=self._start_extraction)
-        self.start_btn.grid(row=19, column=0, padx=20, pady=(10, 4), sticky="ew")
+        self.start_btn.grid(row=20, column=0, padx=20, pady=(10, 4), sticky="ew")
 
         self.stop_btn = ctk.CTkButton(sidebar, text="⏹  Parar", height=36, fg_color="#c0392b",
                                      hover_color="#962d22", command=self._stop_extraction, state="disabled")
-        self.stop_btn.grid(row=20, column=0, padx=20, pady=(4, 12), sticky="ew")
+        self.stop_btn.grid(row=21, column=0, padx=20, pady=(4, 12), sticky="ew")
 
         ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=21, column=0, padx=20, pady=(0, 16), sticky="ew")
+                      command=lambda: self.tabview.set("📖 Guia")).grid(row=22, column=0, padx=20, pady=(0, 16), sticky="ew")
 
         # Main tabs
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
@@ -353,6 +371,8 @@ class CompanyEmailApp(ctk.CTk):
                       fg_color="#1a5276", hover_color="#154360").pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📂 Guardar na pasta", command=self._export_to_folder, width=130,
                       fg_color="#117a65", hover_color="#0e6251").pack(side="left", padx=(0, 6))
+        ctk.CTkButton(exp, text="📝 Emails .txt", command=self._export_emails_txt, width=100,
+                      fg_color="#7d6608", hover_color="#5d4c06").pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="💾 SQLite (.db)", command=self._export_sqlite, width=120).pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📄 CSV completo", command=self._export_csv, width=120).pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📧 Só emails", command=self._export_emails_only, width=110,
@@ -749,13 +769,14 @@ class CompanyEmailApp(ctk.CTk):
         msg = f"Extração concluída: {len(self.records):,} registos"
         self._set_status(msg, 1.0)
         saved_path = None
+        saved_summary = None
         if self.records and self.auto_export_var.get():
-            saved_path = self._export_to_folder(silent=True)
+            saved_path, saved_summary = self._export_to_folder(silent=True)
         if self.records:
             if saved_path:
                 messagebox.showinfo(
                     APP_NAME,
-                    f"{msg}\n\nCSV filtrado guardado em:\n{saved_path}",
+                    f"{msg}\n\n{saved_summary or saved_path}",
                 )
             else:
                 messagebox.showinfo(APP_NAME, msg)
@@ -839,27 +860,76 @@ class CompanyEmailApp(ctk.CTk):
         country = self.country_var.get().lower()
         return str(export_dir / f"empresas_{country}_{stamp}.{extension}")
 
-    def _export_to_folder(self, *, silent: bool = False) -> str | None:
+    def _export_base_name(self, suffix: str) -> str:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        country = self.country_var.get().lower()
+        return f"empresas_{country}_{stamp}_{suffix}"
+
+    def _get_chunk_size(self) -> int:
+        try:
+            size = int(self.chunk_size_var.get().strip() or str(CHUNK_SIZE_DEFAULT))
+        except ValueError:
+            size = CHUNK_SIZE_DEFAULT
+        return max(100, min(size, 1_000_000))
+
+    def _use_chunk_export(self) -> bool:
+        return self.chunk_export_var.get()
+
+    def _format_chunk_summary(self, result: ChunkExportResult) -> str:
+        return (
+            f"{result.total_rows:,} linhas em {len(result.files)} ficheiro(s)\n"
+            f"({result.chunk_size:,} linhas por ficheiro)\n\n"
+            f"Pasta:\n{result.folder}"
+        )
+
+    def _export_to_folder(self, *, silent: bool = False) -> tuple[str | None, str | None]:
         if not self.records:
             if not silent:
                 messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
-            return None
+            return None, None
+
         fields = self._get_selected_fields()
-        path = self._get_export_dir() / (Path(self._default_export_path("csv")).stem + "_filtrado.csv")
-        export_filtered_csv(self.records, path, selected_fields=fields, unique_emails=True)
-        if not silent:
-            messagebox.showinfo(
-                APP_NAME,
-                f"CSV filtrado guardado na pasta de exportação:\n\n{path}\n\n"
-                f"Colunas: {', '.join(fields)}",
+        export_dir = self._get_export_dir()
+
+        if self._use_chunk_export():
+            result = export_filtered_csv_chunked(
+                self.records,
+                export_dir,
+                base_name=self._export_base_name("filtrado"),
+                selected_fields=fields,
+                unique_emails=True,
+                chunk_size=self._get_chunk_size(),
             )
-        return str(path)
+            summary = self._format_chunk_summary(result)
+            if not silent:
+                messagebox.showinfo(APP_NAME, f"Exportação dividida concluída!\n\n{summary}")
+            return str(result.folder), summary
+
+        path = export_dir / (Path(self._default_export_path("csv")).stem + "_filtrado.csv")
+        export_filtered_csv(self.records, path, selected_fields=fields, unique_emails=True)
+        summary = f"CSV filtrado guardado:\n{path}\n\nColunas: {', '.join(fields)}"
+        if not silent:
+            messagebox.showinfo(APP_NAME, summary)
+        return str(path), summary
 
     def _export_filtered(self) -> None:
         if not self.records:
             messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
             return
         fields = self._get_selected_fields()
+
+        if self._use_chunk_export():
+            result = export_filtered_csv_chunked(
+                self.records,
+                self._get_export_dir(),
+                base_name=self._export_base_name("filtrado"),
+                selected_fields=fields,
+                unique_emails=True,
+                chunk_size=self._get_chunk_size(),
+            )
+            messagebox.showinfo(APP_NAME, f"Exportação dividida concluída!\n\n{self._format_chunk_summary(result)}")
+            return
+
         path = filedialog.asksaveasfilename(
             defaultextension=".csv",
             filetypes=[("CSV", "*.csv")],
@@ -878,6 +948,22 @@ class CompanyEmailApp(ctk.CTk):
         if not self.records:
             messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
             return
+
+        if self._use_chunk_export():
+            result = export_emails_only_csv_chunked(
+                self.records,
+                self._get_export_dir(),
+                base_name=self._export_base_name("emails"),
+                unique_emails=True,
+                chunk_size=self._get_chunk_size(),
+            )
+            messagebox.showinfo(
+                APP_NAME,
+                f"Lista de emails exportada em partes!\n\n{self._format_chunk_summary(result)}\n\n"
+                "Colunas: email, empresa, cnpj, uf, municipio",
+            )
+            return
+
         path = filedialog.asksaveasfilename(
             defaultextension=".csv",
             filetypes=[("CSV emails", "*.csv")],
@@ -892,6 +978,24 @@ class CompanyEmailApp(ctk.CTk):
                 f"Lista limpa exportada!\n\n{count:,} e-mails únicos validados\n\n{path}\n\n"
                 "Abra no Excel — colunas: email, empresa, cnpj, uf, municipio",
             )
+
+    def _export_emails_txt(self) -> None:
+        if not self.records:
+            messagebox.showwarning(APP_NAME, "Sem dados para exportar.")
+            return
+
+        result = export_emails_txt_chunked(
+            self.records,
+            self._get_export_dir(),
+            base_name=self._export_base_name("emails_txt"),
+            unique_emails=True,
+            chunk_size=self._get_chunk_size(),
+        )
+        messagebox.showinfo(
+            APP_NAME,
+            f"Emails exportados em ficheiros .txt (1 email por linha)!\n\n"
+            f"{self._format_chunk_summary(result)}",
+        )
 
     def _export_marketing(self) -> None:
         if not self.records:
