@@ -1,8 +1,8 @@
-# Company Email Extractor v2.14 — Guia Completo
+# Company Email Extractor v2.15 — Guia Completo
 
 **Software nativo Windows** para extrair emails e dados de empresas de **19 países** e qualquer site.
 
-- Versão atual: **2.14.0**
+- Versão atual: **2.15.0**
 - Download: https://github.com/tiagosgama90-coder/web_scraping/releases/latest
 - Ficheiro: `CompanyEmailExtractor-Setup.exe`
 
@@ -74,14 +74,15 @@
 30. Usa curl_cffi, cloudscraper e **Playwright** (browser real)
 31. Ativo por defeito — pode desligar na barra lateral
 
-### G) Hide My IP — integrado no software
+### G) Hide My IP + Painel HUD (rádio digital)
 
-32. **Ocultar IP** — vem **ligado por defeito** (igual extensão Hide My IP do Chrome)
-33. **Zero instalação extra** — não precisa VPN, extensão Chrome nem proxy manual
-34. Prepara IP oculto **automaticamente** ao abrir o programa
-35. **Ocultar MAC / ID máquina / impressão digital** — também ativo por defeito
-36. Rotação automática se o servidor anónimo falhar
-37. Para usar IP normal: desmarque «Ocultar IP» na barra lateral
+32. **Painel HUD** no separador **Extrair** — fundo escuro, letras azuis estilo rádio de carro
+33. Mostra **antes de extrair**: IP real, IP oculto, país, Hide My IP ON/OFF, browser/idioma
+34. Estado do sistema: `CALIBRANDO` → `SCANNING` → `READY`
+35. **Ocultar IP** ligado por defeito — integrado, sem VPN externa
+36. **Randomizar impressão digital** — User-Agent, idioma, resolução (browser)
+37. Botão **Atualizar HUD** na barra lateral
+38. Extração só fica disponível quando o HUD mostra `READY`
 
 ### H) Janela ajustável
 
@@ -112,24 +113,56 @@
 
 ---
 
-## 2. Hide My IP — como funciona?
+## 2. Painel HUD — o que mostra?
 
-### Está integrado no software?
+Ao abrir o separador **📊 Extrair**, vê um painel escuro com letras azuis (estilo rádio de carro):
+
+```
+╔══════════════════════════════════════════════════════╗
+║  PRIVACY HUD  │  SYS: READY                          ║
+╠══════════════════════════════════════════════════════╣
+║  IP REAL .......... 85.xxx.xxx.xxx  [Lisboa / PT]    ║
+║  HIDE IP .......... [ON ]                            ║
+║  IP SITES ......... 47.xxx.xxx.xxx  [Frankfurt / DE] ║
+║  STATUS ........... IP OCULTO — OK                   ║
+╠──────────────────────────────────────────────────────╣
+║  BROWSER .......... CHROME 1920x1080                 ║
+║  IDIOMA ........... pt-PT                            ║
+║  DIGITAL .......... RANDOMIZADO                      ║
+╚══════════════════════════════════════════════════════╝
+```
+
+| Linha | Significado |
+|-------|-------------|
+| **IP REAL** | O IP da sua internet (casa/escritório) |
+| **HIDE IP [ON]** | Proteção de IP ativa |
+| **IP SITES** | O IP que os sites veem durante a extração |
+| **STATUS** | `IP OCULTO — OK` = IPs diferentes, a funcionar |
+| **BROWSER / IDIOMA** | Impressão digital randomizada enviada aos sites |
+| **SYS** | `CALIBRANDO` → `SCANNING` → `READY` |
+
+**Aguarde `READY` antes de clicar Iniciar Extração.**
+
+### Hide My IP — integrado
 
 **Sim.** Igual à extensão **Hide My IP** do Chrome, mas **dentro do programa** — não precisa instalar nada à parte.
 
 | O que faz | Como |
 |-----------|------|
 | **Ocultar IP** | Ligado por defeito — os sites não veem o IP da sua casa |
-| **Preparação automática** | Ao abrir o software, prepara servidor anónimo em segundo plano |
-| **Ocultar impressão digital** | MAC, ID máquina e browser falsos — também ativo por defeito |
+| **Painel HUD** | Mostra tudo visualmente antes de extrair |
+| **Randomizar browser** | User-Agent, idioma, resolução aleatórios |
 | **Desativar** | Desmarque «Ocultar IP» na barra lateral |
+
+### Nota sobre MAC
+
+O **MAC da placa de rede nunca é enviado à internet**. O HUD mostra o que realmente muda: **IP** e **impressão digital do browser**.
 
 ### Preciso instalar VPN ou extensão Chrome?
 
 **Não.** Tudo funciona dentro do `CompanyEmailExtractor.exe`.
 
-### Opções avançadas (opcional)
+### Opções avançadas (proxy manual — opcional)
 
 Existem VPNs gratuitas (ProtonVPN free, Windscribe free, etc.), mas:
 
@@ -198,8 +231,8 @@ Documentos\CompanyEmailExtractor\
 | **Gravar enquanto extrai** | CSV/TXT em tempo real |
 | **SQLite em tempo real** | Base de dados durante extração |
 | **Anti-Bot** | Playwright + Cloudflare |
-| **Hide My IP** | **Ligado por defeito** — desmarque para IP normal |
-| **Janela** | Redimensionável — arraste os cantos |
+| **Painel HUD** | Separador Extrair — IP real, IP oculto, país, estado |
+| **Hide My IP** | Ligado por defeito — desmarque para IP normal |
 | **🔍 Pré-visualizar** | Amostra na tabela sem gravar |
 | **▶ Iniciar Extração** | Extração completa + gravação |
 | **⏹ Parar** | Para e mantém o que já foi gravado |
@@ -343,4 +376,4 @@ C:\Users\SeuNome\AppData\Local\CompanyEmailExtractor\custom_sources.json
 
 ---
 
-*Company Email Extractor v2.14.0 — Guia do utilizador*
+*Company Email Extractor v2.15.0 — Guia do utilizador*

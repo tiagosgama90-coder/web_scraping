@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.14."""
+"""Aplicação desktop nativa — Company Email Extractor v2.15."""
 
 from __future__ import annotations
 
@@ -52,6 +52,7 @@ from cnpj_extractor.free_proxy_pool import (
     prewarm_proxy_pool,
 )
 from cnpj_extractor.ip_check import IpInfo, lookup_ip
+from cnpj_extractor.privacy_hud import format_privacy_hud
 from cnpj_extractor.proxy_config import (
     clear_active_proxy,
     clear_free_proxy_mode,
@@ -89,7 +90,12 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.14.3"
+APP_VERSION = "2.15.0"
+
+HUD_BG = "#060b14"
+HUD_FG = "#00a8ff"
+HUD_BORDER = "#0d47a1"
+HUD_FONT = ("Consolas", 12)
 
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
@@ -227,8 +233,13 @@ class CompanyEmailApp(ctk.CTk):
         self._custom_sources: list[CustomSource] = []
         self._source_map: dict[str, str] = {}
         self._selected_export_fields: list[str] = list(DEFAULT_FIELD_KEYS)
+        self._hud_ready = False
+        self._last_real_ip: IpInfo | None = None
+        self._last_hidden_ip: IpInfo | None = None
 
         self._build_ui()
+        self.start_btn.configure(state="disabled")
+        self.preview_btn.configure(state="disabled")
         self._refresh_custom_sources()
         self._on_country_change()
         self._show_welcome_if_first_run()
@@ -389,29 +400,17 @@ class CompanyEmailApp(ctk.CTk):
             justify="left",
             anchor="w",
         ).pack(fill="x", padx=10, pady=(0, 6))
-
-        note_frame = ctk.CTkFrame(privacy, fg_color=("white", "gray14"), corner_radius=6)
-        note_frame.pack(fill="x", padx=10, pady=(0, 6))
         ctk.CTkLabel(
-            note_frame,
-            text="📋 NOTA DE PRIVACIDADE",
-            font=ctk.CTkFont(size=11, weight="bold"),
+            privacy,
+            text="Painel digital completo no separador «Extrair» (HUD).",
+            font=ctk.CTkFont(size=9),
+            text_color="gray",
+            wraplength=250,
             anchor="w",
-        ).pack(fill="x", padx=8, pady=(6, 2))
-        self._privacy_note = ctk.CTkTextbox(
-            note_frame,
-            height=148,
-            font=ctk.CTkFont(size=10),
-            wrap="word",
-            activate_scrollbars=False,
-        )
-        self._privacy_note.pack(fill="x", padx=8, pady=(0, 6))
-        self._privacy_note.insert("1.0", "A carregar informação de privacidade...")
-        self._privacy_note.configure(state="disabled")
-
+        ).pack(fill="x", padx=10, pady=(0, 4))
         ctk.CTkButton(
             privacy,
-            text="🔄 Atualizar nota",
+            text="🔄 Atualizar HUD",
             height=28,
             font=ctk.CTkFont(size=11),
             command=self._refresh_privacy_status_async,
@@ -508,10 +507,33 @@ class CompanyEmailApp(ctk.CTk):
 
     def _build_extract_tab(self, parent: ctk.CTkFrame) -> None:
         parent.grid_columnconfigure(0, weight=1)
-        parent.grid_rowconfigure(2, weight=1)
+        parent.grid_rowconfigure(3, weight=1)
+
+        hud_wrap = ctk.CTkFrame(parent, fg_color=HUD_BG, corner_radius=8, border_width=2, border_color=HUD_BORDER)
+        hud_wrap.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+        hud_wrap.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            hud_wrap,
+            text="◉ PRIVACY HUD — RÁDIO DIGITAL",
+            font=ctk.CTkFont(family="Consolas", size=11, weight="bold"),
+            text_color=HUD_FG,
+            anchor="w",
+        ).grid(row=0, column=0, sticky="w", padx=12, pady=(8, 0))
+        self._privacy_hud = ctk.CTkTextbox(
+            hud_wrap,
+            height=210,
+            font=ctk.CTkFont(family="Consolas", size=12),
+            fg_color=HUD_BG,
+            text_color=HUD_FG,
+            border_width=0,
+            wrap="none",
+            activate_scrollbars=False,
+        )
+        self._privacy_hud.grid(row=1, column=0, sticky="ew", padx=10, pady=(4, 10))
+        self._set_hud_display(self._loading_hud_text())
 
         stats = ctk.CTkFrame(parent)
-        stats.grid(row=0, column=0, sticky="ew", padx=12, pady=(12, 6))
+        stats.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 6))
         for i in range(4):
             stats.grid_columnconfigure(i, weight=1)
         self.stat_total = self._stat_card(stats, "Registos", "0", 0)
@@ -520,7 +542,7 @@ class CompanyEmailApp(ctk.CTk):
         self.stat_status = self._stat_card(stats, "Estado", "Pronto", 3)
 
         prog = ctk.CTkFrame(parent, fg_color="transparent")
-        prog.grid(row=1, column=0, sticky="ew", padx=12, pady=4)
+        prog.grid(row=2, column=0, sticky="ew", padx=12, pady=4)
         prog.grid_columnconfigure(0, weight=1)
         self.progress = ctk.CTkProgressBar(prog, height=14)
         self.progress.grid(row=0, column=0, sticky="ew", pady=(0, 4))
@@ -529,7 +551,7 @@ class CompanyEmailApp(ctk.CTk):
         self.status_label.grid(row=1, column=0, sticky="ew")
 
         table_frame = ctk.CTkFrame(parent)
-        table_frame.grid(row=2, column=0, sticky="nsew", padx=12, pady=6)
+        table_frame.grid(row=3, column=0, sticky="nsew", padx=12, pady=6)
         table_frame.grid_columnconfigure(0, weight=1)
         table_frame.grid_rowconfigure(0, weight=1)
 
@@ -550,7 +572,7 @@ class CompanyEmailApp(ctk.CTk):
         sy.grid(row=0, column=1, sticky="ns")
 
         exp = ctk.CTkFrame(parent, fg_color="transparent")
-        exp.grid(row=3, column=0, sticky="ew", padx=12, pady=(4, 12))
+        exp.grid(row=4, column=0, sticky="ew", padx=12, pady=(4, 12))
         ctk.CTkButton(exp, text="📥 CSV filtrado", command=self._export_filtered, width=120,
                       fg_color="#1a5276", hover_color="#154360").pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📂 Guardar na pasta", command=self._export_to_folder, width=130,
@@ -981,69 +1003,60 @@ class CompanyEmailApp(ctk.CTk):
                 row.get("email", ""), row.get("municipio", "")[:20], row.get("fonte", "")[:25],
             ))
 
-    def _set_privacy_note(self, text: str) -> None:
-        self._privacy_note.configure(state="normal")
-        self._privacy_note.delete("1.0", "end")
-        self._privacy_note.insert("1.0", text)
-        self._privacy_note.configure(state="disabled")
+    def _loading_hud_text(self) -> str:
+        return format_privacy_hud(
+            real_ip=None,
+            hidden_ip=None,
+            hide_ip_enabled=self.hide_ip_var.get(),
+            fingerprint_enabled=self.fingerprint_mask_var.get(),
+            profile=get_fingerprint_profile() or generate_fingerprint_profile(),
+            system_status="CALIBRANDO...",
+        )
 
-    def _build_privacy_note_text(
+    def _set_hud_display(self, text: str) -> None:
+        self._privacy_hud.configure(state="normal")
+        self._privacy_hud.delete("1.0", "end")
+        self._privacy_hud.insert("1.0", text)
+        self._privacy_hud.configure(state="disabled")
+
+    def _build_hud_text(
         self,
         *,
         real_ip: IpInfo | None = None,
         hidden_ip: IpInfo | None = None,
+        system_status: str = "READY",
     ) -> str:
-        lines: list[str] = []
-
-        if real_ip:
-            place = real_ip.country or "desconhecido"
-            if real_ip.city:
-                place = f"{real_ip.city}, {place}"
-            lines.append(f"SEU IP REAL:\n  {real_ip.ip} — {place}")
-        else:
-            lines.append("SEU IP REAL:\n  (a verificar...)")
-
-        lines.append("")
-        if self.hide_ip_var.get():
-            lines.append("HIDE MY IP:  ✅ ATIVADO")
-            if hidden_ip:
-                place = hidden_ip.country or "desconhecido"
-                if hidden_ip.city:
-                    place = f"{hidden_ip.city}, {place}"
-                lines.append(f"IP VISTO PELOS SITES:\n  {hidden_ip.ip} — {place}")
-                if real_ip and real_ip.ip != hidden_ip.ip:
-                    lines.append("  ✅ IP realmente oculto")
-                elif real_ip:
-                    lines.append("  ⚠ A aguardar proxy funcional...")
-            else:
-                lines.append("IP VISTO PELOS SITES:\n  (a preparar servidor anónimo...)")
-        else:
-            lines.append("HIDE MY IP:  ❌ DESATIVADO")
-            lines.append("IP VISTO PELOS SITES:\n  (igual ao seu IP real)")
-
-        lines.append("")
+        profile = None
         if self.fingerprint_mask_var.get():
             profile = get_fingerprint_profile() or generate_fingerprint_profile()
-            lines.append("IMPRESSÃO DIGITAL:  ✅ RANDOMIZADA")
-            lines.append("  O que os sites veem (aleatório):")
-            lines.append(f"    Browser:  {profile.user_agent[:42]}…")
-            lines.append(f"    Idioma:   {profile.accept_language[:36]}…")
-            lines.append(f"    Ecrã:     {profile.viewport_width}x{profile.viewport_height}")
-            lines.append("")
-            lines.append("  Referência interna (não enviada à internet):")
-            lines.append(f"    MAC ref.:  {profile.fake_mac_address}")
-            lines.append(f"    ID ref.:   {profile.fake_machine_id[:20]}…")
-        else:
-            lines.append("IMPRESSÃO DIGITAL:  ❌ DESATIVADA")
-            lines.append("  Browser/idioma/resolução = valores reais do PC")
+        return format_privacy_hud(
+            real_ip=real_ip,
+            hidden_ip=hidden_ip,
+            hide_ip_enabled=self.hide_ip_var.get(),
+            fingerprint_enabled=self.fingerprint_mask_var.get(),
+            profile=profile,
+            system_status=system_status,
+        )
 
-        return "\n".join(lines)
-
-    def _refresh_privacy_status_async(self) -> None:
-        threading.Thread(target=self._refresh_privacy_status_worker, daemon=True).start()
+    def _apply_privacy_displays(
+        self,
+        *,
+        real_ip: IpInfo | None,
+        hidden_ip: IpInfo | None,
+        system_status: str = "READY",
+    ) -> None:
+        self._last_real_ip = real_ip
+        self._last_hidden_ip = hidden_ip
+        self._hud_ready = real_ip is not None
+        text = self._build_hud_text(real_ip=real_ip, hidden_ip=hidden_ip, system_status=system_status)
+        self._set_hud_display(text)
+        if self._hud_ready:
+            self.start_btn.configure(state="normal")
+            self.preview_btn.configure(state="normal")
 
     def _refresh_privacy_status_worker(self) -> None:
         try:
+            self.after(0, self._set_hud_display, self._build_hud_text(system_status="SCANNING..."))
             real = lookup_ip(use_active_proxy=False)
             hidden = None
             if self.hide_ip_var.get():
@@ -1052,17 +1065,37 @@ class CompanyEmailApp(ctk.CTk):
                     proxy_url = get_cached_working_proxy()
                 if proxy_url:
                     hidden = lookup_ip(proxy_url=proxy_url)
-            text = self._build_privacy_note_text(real_ip=real, hidden_ip=hidden)
-            self.after(0, self._set_privacy_note, text)
+            self.after(
+                0,
+                lambda r=real, h=hidden: self._apply_privacy_displays(
+                    real_ip=r, hidden_ip=h, system_status="READY"
+                ),
+            )
         except Exception:
-            self.after(0, self._set_privacy_note, "Não foi possível atualizar a nota de privacidade.")
+            self.after(0, self._set_hud_display, self._build_hud_text(system_status="ERRO SCAN"))
+
+    def _ensure_hud_before_action(self) -> bool:
+        if not self.hide_ip_var.get():
+            return True
+        if get_active_proxy() or get_cached_working_proxy():
+            self._refresh_privacy_status_async()
+            return True
+        self._set_hud_display(self._build_hud_text(system_status="WARMUP..."))
+        url = prewarm_proxy_pool(max_tries=20)
+        if url:
+            set_active_proxy(url)
+        self._refresh_privacy_status_worker()
+        return bool(get_active_proxy() or get_cached_working_proxy() or not self.hide_ip_var.get())
+
+    def _refresh_privacy_status_async(self) -> None:
+        threading.Thread(target=self._refresh_privacy_status_worker, daemon=True).start()
 
     def _start_hide_ip_prewarm(self) -> None:
         if self.hide_ip_var.get() and not self._uses_manual_proxy():
             threading.Thread(target=self._prewarm_hide_ip_worker, daemon=True).start()
 
     def _prewarm_hide_ip_worker(self) -> None:
-        self.after(0, self._set_privacy_note, "A preparar Hide My IP integrado...")
+        self.after(0, self._set_hud_display, self._build_hud_text(system_status="WARMUP..."))
         url = prewarm_proxy_pool(max_tries=18)
         if url:
             set_active_proxy(url)
@@ -1137,7 +1170,7 @@ class CompanyEmailApp(ctk.CTk):
             set_free_proxy_mode(True)
 
             def report(msg: str) -> None:
-                self.after(0, self._set_privacy_note, f"A preparar Hide My IP...\n{msg}")
+                self.after(0, self._set_hud_display, self._build_hud_text(system_status=msg[:28]))
                 self.after(0, self._set_status, msg)
 
             url = get_cached_working_proxy()
