@@ -6,73 +6,60 @@ Este guia explica passo a passo como extrair e-mails de empresas
 de qualquer país, site ou base de dados.
 
 
-PASSO 1 — ESCOLHER O PAÍS
---------------------------
-Na barra lateral, escolha o país:
-  • PT = Portugal (FIZ — ~490k empresas)
-  • BR = Brasil (Receita Federal — ~67M empresas)
-  • ES, FR, DE, IT, GB = Europa (diretórios empresariais)
-  • MX, AR, CO, CL, PE = América Latina
-  • US, CA = América do Norte
-  • NL, BE, PL, RO = mais países europeus
-  • OUTRO = qualquer site personalizado
+PASSO 1 — ESCOLHER A BASE DE DADOS
+-----------------------------------
+Na barra lateral esquerda, use o menu «Base de dados / Diretório».
+Todas as bases de TODOS os países estão na mesma lista:
 
-Separador «🌍 Diretórios» — lista TODAS as bases por país.
+  • 🇵🇹 FIZ Portugal — ~490.000 empresas
+  • 🇧🇷 Receita Federal — ~67 milhões
+  • 🇪🇸 Empresite — ~4 milhões
+  • 🇫🇷 Societe.com, Pages Jaunes…
+  • 🇩🇪 Gelbe Seiten, North Data…
+  • E mais 15+ países
 
-
-PASSO 2 — ESCOLHER A FONTE
----------------------------
-Fontes oficiais / principais:
-  • 🇵🇹 FIZ Portugal — ~490.000 empresas (sitemap)
-  • 🇧🇷 Receita Federal — ~67 milhões (dados abertos)
-  • 🇪🇸 Empresite — ~4 milhões (sitemap Espanha)
-
-Diretórios por país (separador «Diretórios»):
-  • 🇫🇷 França: Societe.com, Pages Jaunes, Pappers…
-  • 🇩🇪 Alemanha: Gelbe Seiten, North Data, WLW…
-  • 🇮🇹 Itália: Pagine Gialle, Kompass…
-  • 🇬🇧 Reino Unido: Yell.com, Kompass UK…
-  • 🇲🇽 México: Sección Amarilla, DENUE…
-  • 🇦🇷 Argentina, 🇨🇴 Colômbia, 🇨🇱 Chile, 🇵🇪 Peru
-  • 🇺🇸 EUA: Yellow Pages, Manta…
-  • 🇨🇦 Canadá, 🇳🇱 Holanda, 🇧🇪 Bélgica, 🇵🇱 Polónia, 🇷🇴 Roménia
-
-Fontes personalizadas (qualquer site):
-  • Vá ao separador "Minhas Fontes"
-  • Clique em "+ Adicionar Fonte"
-  • Escolha o tipo e cole o URL
+Ao escolher uma base, o país é ajustado automaticamente.
+O menu «País» serve sobretudo para filtros (UF, distrito, setor).
 
 
-PASSO 3 — TIPOS DE FONTE PERSONALIZADA
----------------------------------------
+PASSO 2 — MODO E LIMITE
+------------------------
+  • Limitado = teste rápido (recomendado para começar)
+  • Automático = extração completa (pode demorar horas)
+  • Limite: 50 para teste, 0 para sem limite
+
+
+PASSO 3 — FONTES PERSONALIZADAS
+--------------------------------
+  • Separador «Minhas Fontes» → cole URL → «Adicionar e usar»
+  • Ou «➕ Adicionar nova fonte...» no menu de bases
+
+Tipos de fonte personalizada:
 
 ┌─────────────────────────────────────────────────────────┐
 │ SITEMAP XML                                             │
 │ Cole: https://site.com/sitemap.xml                      │
-│         ou https://site.com/api/sitemap/empresas/1      │
 │ O software descobre TODAS as páginas automaticamente.   │
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
-│ LISTA DE URLS                                           │
-│ Cole um link por linha:                                 │
-│   https://site.com/empresa-1                            │
-│   https://site.com/empresa-2                            │
-│ Ou importe um ficheiro .txt com os links.               │
+│ LISTA DE URLS — um link por linha ou ficheiro .txt      │
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
-│ PÁGINA / SITE                                           │
-│ Cole o URL de uma página ou site:                       │
-│   https://site.com/empresas                             │
-│ Modo automático: segue links no mesmo site.             │
+│ PÁGINA / SITE — segue links no mesmo domínio            │
 └─────────────────────────────────────────────────────────┘
 
 
-PASSO 4 — MODO DE EXTRAÇÃO
----------------------------
-  • Limitado = teste rápido (recomendado para começar)
-  • Automático = extração completa (pode demorar horas)
+PASSO 4 — INICIAR / PARAR / PRÉ-VISUALIZAR
+-------------------------------------------
+No separador «Extrair», logo ABAIXO do painel HUD, há três botões GRANDES:
+
+  ▶ INICIAR EXTRAÇÃO  — começa a extração completa
+  ⏹ PARAR             — interrompe a extração
+  🔍 Pré-visualizar    — vê amostra na tabela (não grava ficheiros)
+
+Aguarde SYS: READY no HUD antes de clicar.
 
 
 PASSO 5 — PAINEL HUD + HIDE MY IP
@@ -113,24 +100,18 @@ Na barra lateral pode escolher:
   • Vários códigos: 62, 47, 86 — prefixo funciona (62 inclui 6201, 6202…)
 
 
-PASSO 7 — PRÉ-VISUALIZAR
--------------------------
-Antes de gravar ficheiros, pode ver o que o software captou:
-
-  1. Configure país, fonte e filtros
-  2. Clique «🔍 Pré-visualizar» (número = quantos registos ver, ex: 25)
-  3. Os emails aparecem na TABELA do separador «Extrair»
-  4. NÃO grava CSV/SQLite na pré-visualização
-  5. Se estiver OK → clique «▶ Iniciar Extração» para extração completa
+PASSO 7 — PRÉ-VISUALIZAR E EXPORTAR
+------------------------------------
+  1. Configure base, modo e filtros
+  2. Clique «🔍 Pré-visualizar» (número = quantos registos, ex: 25)
+  3. Os emails aparecem na TABELA
+  4. Se estiver OK → «▶ INICIAR EXTRAÇÃO»
+  5. Ficheiros guardados em tempo real na pasta de exportação
 
 
-PASSO 8 — INICIAR E EXPORTAR
------------------------------
-  1. Clique "▶ Iniciar Extração"
-  2. Veja os resultados na tabela
-  3. Os ficheiros são guardados EM TEMPO REAL na pasta de exportação
-  4. CSV em partes de 1000 linhas + SQLite + emails .txt
-  5. Brasil com "Todos": extrai UF por UF automaticamente
+PASSO 8 — BOTÕES DE EXPORTAÇÃO
+-------------------------------
+  CSV filtrado, SQLite, emails .txt, Marketing — na parte inferior do ecrã
 
 
 ADICIONAR NOVO SITE RAPIDAMENTE
@@ -158,8 +139,7 @@ Portugal (completo):
   País: PT | Fonte: FIZ | Modo: automático | Limite: 0
 
 Espanha (teste rápido):
-  Separador «Diretórios» → Espanha → Empresite → Usar
-  Pré-visualizar: 25 → ver emails no ecrã
+  Base: 🇪🇸 Empresite → Pré-visualizar: 25 → INICIAR EXTRAÇÃO
 
 Brasil (milhões):
   País: BR | Fonte: Receita Federal | UF: Todos | Modo: automático
