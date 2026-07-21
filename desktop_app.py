@@ -41,7 +41,8 @@ from cnpj_extractor.field_filters import (
 from cnpj_extractor.gui_text import ADD_SOURCE_HELP, GUIDE_TEXT
 from cnpj_extractor.fingerprint_privacy import (
     clear_fingerprint_masking,
-    profile_summary,
+    generate_fingerprint_profile,
+    get_fingerprint_profile,
     set_fingerprint_masking,
 )
 from cnpj_extractor.free_proxy_pool import (
@@ -50,7 +51,7 @@ from cnpj_extractor.free_proxy_pool import (
     get_cached_working_proxy,
     prewarm_proxy_pool,
 )
-from cnpj_extractor.ip_check import compare_ips, lookup_ip
+from cnpj_extractor.ip_check import IpInfo, lookup_ip
 from cnpj_extractor.proxy_config import (
     clear_active_proxy,
     clear_free_proxy_mode,
@@ -88,7 +89,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.14.1"
+APP_VERSION = "2.14.2"
 
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
@@ -234,6 +235,7 @@ class CompanyEmailApp(ctk.CTk):
         self._start_hide_ip_prewarm()
         if self.fingerprint_mask_var.get():
             self._on_fingerprint_mask_change()
+        self._refresh_privacy_status_async()
 
     def _show_welcome_if_first_run(self) -> None:
         if not load_custom_sources():
@@ -366,24 +368,7 @@ class CompanyEmailApp(ctk.CTk):
             variable=self.hide_ip_var,
             command=self._on_hide_ip_toggle,
             font=ctk.CTkFont(size=13, weight="bold"),
-        ).pack(fill="x", padx=10, pady=(0, 2))
-        self._hide_ip_status = ctk.CTkLabel(
-            privacy,
-            text="Integrado — não precisa instalar VPN nem extensão Chrome.",
-            font=ctk.CTkFont(size=10),
-            text_color="gray",
-            wraplength=250,
-            justify="left",
-            anchor="w",
-        )
-        self._hide_ip_status.pack(fill="x", padx=10, pady=(0, 4))
-        ctk.CTkButton(
-            privacy,
-            text="🔍 Verificar IP / País",
-            height=28,
-            font=ctk.CTkFont(size=11),
-            command=self._verify_ip_now,
-        ).pack(fill="x", padx=10, pady=(0, 6))
+        ).pack(fill="x", padx=10, pady=(0, 4))
         self.fingerprint_mask_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             privacy,
@@ -391,17 +376,34 @@ class CompanyEmailApp(ctk.CTk):
             variable=self.fingerprint_mask_var,
             command=self._on_fingerprint_mask_change,
             font=ctk.CTkFont(size=11),
-        ).pack(fill="x", padx=10, pady=(0, 4))
-        self._fingerprint_summary = ctk.CTkLabel(
-            privacy,
-            text="Proteção digital ativa com Hide My IP.",
-            font=ctk.CTkFont(size=10),
-            text_color="#1a5276",
-            wraplength=250,
-            justify="left",
+        ).pack(fill="x", padx=10, pady=(0, 6))
+
+        note_frame = ctk.CTkFrame(privacy, fg_color=("white", "gray14"), corner_radius=6)
+        note_frame.pack(fill="x", padx=10, pady=(0, 6))
+        ctk.CTkLabel(
+            note_frame,
+            text="📋 NOTA DE PRIVACIDADE",
+            font=ctk.CTkFont(size=11, weight="bold"),
             anchor="w",
+        ).pack(fill="x", padx=8, pady=(6, 2))
+        self._privacy_note = ctk.CTkTextbox(
+            note_frame,
+            height=148,
+            font=ctk.CTkFont(size=10),
+            wrap="word",
+            activate_scrollbars=False,
         )
-        self._fingerprint_summary.pack(fill="x", padx=10, pady=(0, 6))
+        self._privacy_note.pack(fill="x", padx=8, pady=(0, 6))
+        self._privacy_note.insert("1.0", "A carregar informação de privacidade...")
+        self._privacy_note.configure(state="disabled")
+
+        ctk.CTkButton(
+            privacy,
+            text="🔄 Atualizar nota",
+            height=28,
+            font=ctk.CTkFont(size=11),
+            command=self._refresh_privacy_status_async,
+        ).pack(fill="x", padx=10, pady=(0, 6))
         self.advanced_proxy_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(
             privacy,
@@ -967,105 +969,121 @@ class CompanyEmailApp(ctk.CTk):
                 row.get("email", ""), row.get("municipio", "")[:20], row.get("fonte", "")[:25],
             ))
 
+    def _set_privacy_note(self, text: str) -> None:
+        self._privacy_note.configure(state="normal")
+        self._privacy_note.delete("1.0", "end")
+        self._privacy_note.insert("1.0", text)
+        self._privacy_note.configure(state="disabled")
+
+    def _build_privacy_note_text(
+        self,
+        *,
+        real_ip: IpInfo | None = None,
+        hidden_ip: IpInfo | None = None,
+    ) -> str:
+        lines: list[str] = []
+
+        if real_ip:
+            place = real_ip.country or "desconhecido"
+            if real_ip.city:
+                place = f"{real_ip.city}, {place}"
+            lines.append(f"SEU IP REAL:\n  {real_ip.ip} — {place}")
+        else:
+            lines.append("SEU IP REAL:\n  (a verificar...)")
+
+        lines.append("")
+        if self.hide_ip_var.get():
+            lines.append("HIDE MY IP:  ✅ ATIVADO")
+            if hidden_ip:
+                place = hidden_ip.country or "desconhecido"
+                if hidden_ip.city:
+                    place = f"{hidden_ip.city}, {place}"
+                lines.append(f"IP VISTO PELOS SITES:\n  {hidden_ip.ip} — {place}")
+                if real_ip and real_ip.ip != hidden_ip.ip:
+                    lines.append("  ✅ IP realmente oculto")
+                elif real_ip:
+                    lines.append("  ⚠ A aguardar proxy funcional...")
+            else:
+                lines.append("IP VISTO PELOS SITES:\n  (a preparar servidor anónimo...)")
+        else:
+            lines.append("HIDE MY IP:  ❌ DESATIVADO")
+            lines.append("IP VISTO PELOS SITES:\n  (igual ao seu IP real)")
+
+        lines.append("")
+        if self.fingerprint_mask_var.get():
+            profile = get_fingerprint_profile() or generate_fingerprint_profile()
+            lines.append("MAC / ID MÁQUINA:  ✅ OCULTO")
+            lines.append(f"  MAC falso:      {profile.fake_mac_address}")
+            lines.append(f"  ID máquina:     {profile.fake_machine_id}")
+            lines.append(f"  Hostname falso: {profile.fake_hostname}")
+        else:
+            lines.append("MAC / ID MÁQUINA:  ❌ DESATIVADO")
+            lines.append("  (valores reais do sistema visíveis nos pedidos HTTP)")
+
+        return "\n".join(lines)
+
+    def _refresh_privacy_status_async(self) -> None:
+        threading.Thread(target=self._refresh_privacy_status_worker, daemon=True).start()
+
+    def _refresh_privacy_status_worker(self) -> None:
+        try:
+            real = lookup_ip(use_active_proxy=False)
+            hidden = None
+            if self.hide_ip_var.get():
+                proxy_url = get_active_proxy()
+                if not proxy_url and not self._uses_manual_proxy():
+                    proxy_url = get_cached_working_proxy()
+                if proxy_url:
+                    hidden = lookup_ip(proxy_url=proxy_url)
+            text = self._build_privacy_note_text(real_ip=real, hidden_ip=hidden)
+            self.after(0, self._set_privacy_note, text)
+        except Exception:
+            self.after(0, self._set_privacy_note, "Não foi possível atualizar a nota de privacidade.")
+
     def _start_hide_ip_prewarm(self) -> None:
         if self.hide_ip_var.get() and not self._uses_manual_proxy():
             threading.Thread(target=self._prewarm_hide_ip_worker, daemon=True).start()
 
     def _prewarm_hide_ip_worker(self) -> None:
-        def report(msg: str) -> None:
-            self.after(0, self._hide_ip_status.configure, {"text": msg})
-
-        url = prewarm_proxy_pool(max_tries=18, progress_callback=report)
+        self.after(0, self._set_privacy_note, "A preparar Hide My IP integrado...")
+        url = prewarm_proxy_pool(max_tries=18)
         if url:
             set_active_proxy(url)
-            info = lookup_ip(proxy_url=url)
-            if info:
-                report(f"✅ IP oculto: {info.ip} — {info.country or 'país desconhecido'}")
-
-    def _verify_ip_now(self) -> None:
-        self._hide_ip_status.configure(text="🔍 A verificar IP real vs IP oculto...")
-        threading.Thread(target=self._verify_ip_worker, daemon=True).start()
-
-    def _verify_ip_worker(self) -> None:
-        try:
-            if self.hide_ip_var.get() and not get_cached_working_proxy():
-                if not get_active_proxy():
-                    url = acquire_working_proxy(max_tries=15)
-                    if url:
-                        set_active_proxy(url)
-
-            result = compare_ips()
-            real = result.get("real")
-            proxied = result.get("proxied")
-
-            lines = ["VERIFICAÇÃO DE IP\n"]
-            if real:
-                lines.append(f"IP REAL (sua internet):\n  {real.summary()}\n")
-            else:
-                lines.append("IP REAL: não foi possível verificar.\n")
-
-            if self.hide_ip_var.get():
-                if proxied:
-                    lines.append(f"IP DO SOFTWARE (oculto):\n  {proxied.summary()}\n")
-                    if real and real.ip != proxied.ip:
-                        lines.append("✅ O IP está OCULTO — os sites veem outro IP.")
-                    elif real:
-                        lines.append("⚠ O IP parece igual — tente novamente.")
-                else:
-                    lines.append("IP DO SOFTWARE: proxy ainda não pronto.\nAguarde ou inicie uma extração.")
-            else:
-                lines.append("Hide My IP está DESATIVADO.\nOs sites veem o seu IP real.")
-
-            message = "\n".join(lines)
-            self.after(0, self._hide_ip_status.configure, {"text": message.split("\n")[-2] if proxied else "Verificação concluída."})
-            self.after(0, messagebox.showinfo, APP_NAME, message)
-        except Exception as exc:
-            self.after(0, messagebox.showerror, APP_NAME, f"Erro ao verificar IP:\n{exc}")
+        self._refresh_privacy_status_worker()
 
     def _uses_manual_proxy(self) -> bool:
         return self.advanced_proxy_var.get() and bool(self.proxy_url_var.get().strip())
 
     def _on_hide_ip_toggle(self) -> None:
         if self.hide_ip_var.get():
-            self._hide_ip_status.configure(
-                text="Hide My IP ativo — integrado, sem instalar nada.",
-            )
             self._start_hide_ip_prewarm()
-        else:
-            self._hide_ip_status.configure(
-                text="Desativado — os sites veem o IP da sua internet.",
-            )
+        self._refresh_privacy_status_async()
 
     def _on_advanced_proxy_toggle(self) -> None:
         if self.advanced_proxy_var.get():
             self._advanced_frame.pack(fill="x", pady=(0, 2))
             self.proxy_entry.configure(state="normal")
             self.hide_ip_var.set(False)
-            self._hide_ip_status.configure(text="Modo manual — cole o endereço do proxy abaixo.")
         else:
             self._advanced_frame.pack_forget()
             self.proxy_entry.configure(state="disabled")
             self.hide_ip_var.set(True)
             self._on_hide_ip_toggle()
+        self._refresh_privacy_status_async()
 
     def _on_fingerprint_mask_change(self) -> None:
         if self.fingerprint_mask_var.get():
-            profile = set_fingerprint_masking(True, rotate_each_request=True)
-            if profile:
-                self._fingerprint_summary.configure(text=profile_summary(profile))
+            set_fingerprint_masking(True, rotate_each_request=True)
         else:
             clear_fingerprint_masking()
-            self._fingerprint_summary.configure(text="Desativado — impressão digital normal do sistema.")
+        self._refresh_privacy_status_async()
 
     def _activate_fingerprint_for_extraction(self) -> None:
         if self.fingerprint_mask_var.get():
-            profile = set_fingerprint_masking(True, rotate_each_request=True)
-            if profile:
-                summary = profile_summary(profile)
-                self.after(0, self._fingerprint_summary.configure, {"text": summary})
-                self.after(0, self._set_status, f"🎭 Impressão digital oculta: {summary}")
+            set_fingerprint_masking(True, rotate_each_request=True)
         else:
             clear_fingerprint_masking()
+        self._refresh_privacy_status_async()
 
     def _validate_proxy_settings(self) -> bool:
         if not self._uses_manual_proxy():
@@ -1095,13 +1113,14 @@ class CompanyEmailApp(ctk.CTk):
             url = normalize_proxy_url(self.proxy_url_var.get())
             set_active_proxy(url)
             self.after(0, self._set_status, f"🔒 Proxy manual: {mask_proxy_for_display(url)}")
+            self.after(0, self._refresh_privacy_status_async)
             return True
 
         if self.hide_ip_var.get():
             set_free_proxy_mode(True)
 
             def report(msg: str) -> None:
-                self.after(0, self._hide_ip_status.configure, {"text": msg})
+                self.after(0, self._set_privacy_note, f"A preparar Hide My IP...\n{msg}")
                 self.after(0, self._set_status, msg)
 
             url = get_cached_working_proxy()
@@ -1117,15 +1136,7 @@ class CompanyEmailApp(ctk.CTk):
                 )
                 return False
             set_active_proxy(url)
-            info = lookup_ip(proxy_url=url)
-            if info:
-                country = info.country or "país desconhecido"
-                self.after(
-                    0,
-                    self._hide_ip_status.configure,
-                    {"text": f"✅ IP oculto: {info.ip} — {country}"},
-                )
-                self.after(0, self._set_status, f"🌐 Hide My IP ativo: {info.ip} ({country})")
+            self.after(0, self._refresh_privacy_status_async)
             return True
 
         set_free_proxy_mode(False)
