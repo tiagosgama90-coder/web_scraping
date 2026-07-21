@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.8 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.9 — LEIA-ME
 ================================================================================
 
 INSTALACAO
@@ -14,85 +14,59 @@ https://github.com/tiagosgama90-coder/web_scraping/releases/latest
 
 O QUE FAZ
 ---------
-- Extrai emails de empresas (Brasil, Portugal, Espanha, qualquer site)
+- Extrai emails de empresas em 19 PAISES + sites personalizados
+- Brasil: Receita Federal (~67M empresas, dados oficiais)
+- Portugal: FIZ (~490k empresas)
+- 16 paises com diretorios: ES, FR, DE, IT, GB, MX, AR, CO, CL, PE, US, CA, NL, BE, PL, RO
 - PRE-VISUALIZACAO: ve emails no ecra ANTES de gravar ficheiros
-- Limpa emails invalidos, duplicados e lixo (noreply, etc.)
-- Filtra por SETOR: CNAE (BR), CAE/ISIC (PT/ES), codigos internacionais
 - Grava CSV, TXT e SQLite ENQUANTO extrai
 - Divide em ficheiros de 1000 linhas (abre no Excel)
-- Brasil: extrai UF por UF (SP, RJ, MG...) em pastas separadas
-- Espanha: 30+ diretorios (Empresite, Paginas Amarillas, Kompass...)
 
-PRE-VISUALIZAR (NOVO v2.8)
-----------------------------
-1. Configure Pais e Fonte na barra lateral
-2. Clique "Pre-visualizar" (numero = quantos registos ver, ex: 25)
-3. Veja os emails na TABELA do separador "Extrair"
-4. NAO grava ficheiros na pre-visualizacao
-5. Se estiver OK -> clique "Iniciar Extracao" para gravar tudo
+PAISES DISPONIVEIS (v2.9)
+-------------------------
+  PT  Portugal (FIZ)          BR  Brasil (Receita Federal)
+  ES  Espanha (Empresite)     FR  Franca (Societe.com)
+  DE  Alemanha (Gelbe Seiten) IT  Italia (Pagine Gialle)
+  GB  Reino Unido (Yell)      MX  Mexico (Seccion Amarilla)
+  AR  Argentina               CO  Colombia
+  CL  Chile                   PE  Peru
+  US  Estados Unidos          CA  Canada
+  NL  Paises Baixos           BE  Belgica
+  PL  Polonia                 RO  Romenia
+  OUTRO = qualquer site
 
-ESPANHA (NOVO v2.8)
--------------------
-- Separador "Espanha" -> escolha fonte -> "Usar"
-- Recomendado: Empresite (~4M empresas, sitemap automatico)
-- Filtro opcional: Provincia (Madrid, Barcelona, Valencia...)
-- Anti-Bot: manter ATIVO (Empresite usa Cloudflare)
+SEPARADOR "DIRETORIOS"
+----------------------
+1. Abra o separador "Diretorios"
+2. Escolha o PAIS no menu
+3. Clique "Usar" na fonte desejada
+4. "Pre-visualizar" (25) -> ve emails na tabela
+5. "Iniciar Extracao" -> grava ficheiros
 
-FILTRO POR SETOR
-----------------
-Campo "CNAE / CAE / ISIC" na barra lateral:
-
-  Brasil:   6202300  ou  62  (tecnologia/TI)
-  Portugal: 6201     ou  62  (programacao informatica)
-  Espanha:  6201     ou  62  (quando disponivel na ficha)
-  Varios:   62, 47, 86  (separados por virgula)
-
-CODIGOS COMUNS
+PRE-VISUALIZAR
 --------------
-  62 = Tecnologia / TI        47 = Comercio
-  86 = Saude                  41 = Construcao
-  56 = Restauracao            85 = Educacao
+- Configure Pais e Fonte
+- Clique "Pre-visualizar" (numero = amostra, ex: 25)
+- Veja emails na TABELA (separador Extrair)
+- NAO grava ficheiros na pre-visualizacao
+- Se OK -> "Iniciar Extracao"
 
 INICIO RAPIDO
 -------------
 1. Abra o programa
-2. Escolha Pais, Fonte e Setor (opcional)
-3. Pre-visualize 25 registos (opcional mas recomendado)
+2. Escolha Pais e Fonte (ou Diretorios -> Usar)
+3. Pre-visualize 25 registos (recomendado)
 4. Clique "Iniciar Extracao"
-5. Resultados em: Documentos\CompanyEmailExtractor\export\
+5. Resultados: Documentos\CompanyEmailExtractor\export\
 
-BRASIL (MILHOES DE EMAILS)
---------------------------
-- Pais: BR | Fonte: Receita Federal | UF: Todos
-- CNAE: 62 (opcional - so tecnologia)
-- Ative: Extrair UF por UF, Gravar enquanto extrai, SQLite
-- Modo: automatico | Limite: 0
-
-FORMATOS GRAVADOS
------------------
-  parte_0001.csv   -> CSV para Excel (1000 linhas cada)
-  emails_0001.txt  -> 1 email por linha (ficheiro leve)
-  empresas.db      -> Base de dados SQLite (milhoes de linhas)
-
-CANCELAR / DISCO CHEIO
-----------------------
-- Clicar Parar: mantem o que ja foi gravado
-- UF ja concluidas ficam completas na pasta export
-- Liberte 10-20 GB antes de extracoes grandes
-
-ABRIR FICHEIROS
----------------
-  .csv  -> Excel
-  .txt  -> Bloco de notas
-  .db   -> DB Browser for SQLite (https://sqlitebrowser.org/)
-
-GUIA COMPLETO
--------------
-Leia COMO_USAR.md nesta mesma pasta.
-
-SUPORTE / CODIGO
+BRASIL (MILHOES)
 ----------------
-https://github.com/tiagosgama90-coder/web_scraping
+  Pais: BR | Fonte: Receita Federal | UF: Todos
+  Ative: Extrair UF por UF, Gravar enquanto extrai
+  Modo: automatico | Limite: 0
+
+GUIA COMPLETO: COMO_USAR.md (nesta pasta)
+SUPORTE: https://github.com/tiagosgama90-coder/web_scraping
 
 AVISO LEGAL: Use em conformidade com LGPD/RGPD.
 

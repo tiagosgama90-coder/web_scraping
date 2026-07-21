@@ -7,7 +7,22 @@ SECTOR_LABELS = {
     "BR": "CNAE (setor de atividade)",
     "PT": "CAE / ISIC (setor)",
     "ES": "CNAE / CAE (setor)",
-    "OUTRO": "Código setor (CNAE / CAE / ISIC)",
+    "FR": "NAF / NACE (setor)",
+    "DE": "WZ / NACE (setor)",
+    "IT": "ATECO / NACE (setor)",
+    "GB": "SIC / NACE (setor)",
+    "MX": "SCIAN / sector",
+    "AR": "CIIU / sector",
+    "CO": "CIIU / sector",
+    "CL": "CIIU / sector",
+    "PE": "CIIU / sector",
+    "US": "NAICS (setor)",
+    "CA": "NAICS (setor)",
+    "NL": "SBI / NACE (setor)",
+    "BE": "NACE (setor)",
+    "PL": "PKD / NACE (setor)",
+    "RO": "CAEN / NACE (setor)",
+    "OUTRO": "Código setor (CNAE / CAE / ISIC / NACE)",
 }
 
 SECTOR_PLACEHOLDERS = {
@@ -31,10 +46,15 @@ SECTOR_HINTS = {
         "  62 = TI | 47 = comércio | 86 = saúde | 41 = construção"
     ),
     "OUTRO": (
-        "Aceita CNAE (BR), CAE/ISIC (PT/EU) ou códigos similares.\n"
+        "Aceita CNAE (BR), CAE/ISIC (PT/EU), NACE/NAICS ou códigos similares.\n"
         "Separe vários com vírgula. Prefixo funciona: 62 inclui 6201, 6202…"
     ),
 }
+
+_GENERIC_HINT = (
+    "Códigos NACE/ISIC internacionais (prefixo funciona):\n"
+    "  62 = TI | 47 = comércio | 86 = saúde | 41 = construção"
+)
 
 # Prefixos comuns (referência rápida na UI)
 COMMON_SECTORS = [
@@ -97,4 +117,8 @@ def get_sector_placeholder(country: str) -> str:
 
 
 def get_sector_hint(country: str) -> str:
-    return SECTOR_HINTS.get(country, SECTOR_HINTS["OUTRO"])
+    if country in SECTOR_HINTS:
+        return SECTOR_HINTS[country]
+    if country in SECTOR_LABELS:
+        return _GENERIC_HINT
+    return SECTOR_HINTS["OUTRO"]
