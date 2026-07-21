@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.5."""
+"""Aplicação desktop nativa — Company Email Extractor v2.6."""
 
 from __future__ import annotations
 
@@ -45,13 +45,14 @@ from cnpj_extractor.sources.fiz_portugal import FIZ_SITEMAP_INDEX
 from cnpj_extractor.sources.receita_federal import ReceitaFederalSource
 from cnpj_extractor.sources.sitemap_generic import GenericSitemapSource
 from cnpj_extractor.sources.website_scraper import WebScraperSource
+from cnpj_extractor.streaming_export import StreamingExporter
 from cnpj_extractor.utils import dedupe_by_email, dedupe_records, filter_valid_email_records, format_cnpj
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.5.0"
+APP_VERSION = "2.6.0"
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
 DEFAULT_EXPORT_DIR = DEFAULT_BASE_DIR / "export"
@@ -67,6 +68,7 @@ BRAZIL_UFS = [
     "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS",
     "RO", "RR", "SC", "SP", "SE", "TO",
 ]
+BRAZIL_UF_CODES = [uf for uf in BRAZIL_UFS if uf != "Todos"]
 
 
 class AddSourceDialog(ctk.CTkToplevel):
@@ -177,6 +179,9 @@ class CompanyEmailApp(ctk.CTk):
         self.minsize(1000, 640)
 
         self.records: list[dict] = []
+        self._stream_total = 0
+        self._stream_results: list = []
+        self._stream_root: Path | None = None
         self._extracting = False
         self._stop_requested = False
         self._custom_sources: list[CustomSource] = []
@@ -200,7 +205,7 @@ class CompanyEmailApp(ctk.CTk):
         # Sidebar
         sidebar = ctk.CTkFrame(self, width=300, corner_radius=0)
         sidebar.grid(row=0, column=0, sticky="nsew")
-        sidebar.grid_rowconfigure(19, weight=1)
+        sidebar.grid_rowconfigure(21, weight=1)
 
         ctk.CTkLabel(sidebar, text="📧 Email Extractor", font=ctk.CTkFont(size=22, weight="bold")).grid(
             row=0, column=0, padx=20, pady=(20, 2), sticky="w"
@@ -276,15 +281,31 @@ class CompanyEmailApp(ctk.CTk):
         ctk.CTkEntry(chunk_row, textvariable=self.chunk_size_var, width=56).pack(side="left", padx=(6, 4))
         ctk.CTkLabel(chunk_row, text="linhas/ficheiro", font=ctk.CTkFont(size=11), text_color="gray").pack(side="left")
 
+        self.stream_export_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            sidebar,
+            text="💾 Gravar ficheiros enquanto extrai",
+            variable=self.stream_export_var,
+            font=ctk.CTkFont(size=11),
+        ).grid(row=18, column=0, padx=20, pady=2, sticky="w")
+
+        self.sqlite_stream_var = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            sidebar,
+            text="🗄 SQLite em tempo real (volumes grandes)",
+            variable=self.sqlite_stream_var,
+            font=ctk.CTkFont(size=11),
+        ).grid(row=19, column=0, padx=20, pady=2, sticky="w")
+
         self.antibot_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             sidebar,
             text="🛡 Anti-Bot (Playwright + Cloudflare)",
             variable=self.antibot_var,
-        ).grid(row=18, column=0, padx=20, pady=6, sticky="w")
+        ).grid(row=20, column=0, padx=20, pady=6, sticky="w")
 
         paths = ctk.CTkFrame(sidebar, fg_color="transparent")
-        paths.grid(row=19, column=0, padx=20, sticky="ew")
+        paths.grid(row=21, column=0, padx=20, sticky="ew")
         ctk.CTkLabel(paths, text="Pasta de downloads (BR/RFB)", anchor="w").pack(fill="x")
         self.data_dir_var = ctk.StringVar(value=str(DEFAULT_DATA_DIR))
         data_row = ctk.CTkFrame(paths, fg_color="transparent")
@@ -302,14 +323,14 @@ class CompanyEmailApp(ctk.CTk):
         self.start_btn = ctk.CTkButton(sidebar, text="▶  Iniciar Extração", height=44,
                                        font=ctk.CTkFont(size=15, weight="bold"),
                                        command=self._start_extraction)
-        self.start_btn.grid(row=20, column=0, padx=20, pady=(10, 4), sticky="ew")
+        self.start_btn.grid(row=22, column=0, padx=20, pady=(10, 4), sticky="ew")
 
         self.stop_btn = ctk.CTkButton(sidebar, text="⏹  Parar", height=36, fg_color="#c0392b",
                                      hover_color="#962d22", command=self._stop_extraction, state="disabled")
-        self.stop_btn.grid(row=21, column=0, padx=20, pady=(4, 12), sticky="ew")
+        self.stop_btn.grid(row=23, column=0, padx=20, pady=(4, 12), sticky="ew")
 
         ctk.CTkButton(sidebar, text="📖 Abrir Guia", height=32, fg_color="gray35",
-                      command=lambda: self.tabview.set("📖 Guia")).grid(row=22, column=0, padx=20, pady=(0, 16), sticky="ew")
+                      command=lambda: self.tabview.set("📖 Guia")).grid(row=24, column=0, padx=20, pady=(0, 16), sticky="ew")
 
         # Main tabs
         self.tabview = ctk.CTkTabview(self, corner_radius=0)
@@ -545,6 +566,12 @@ class CompanyEmailApp(ctk.CTk):
             ctk.CTkLabel(self.filter_frame, text="UF", anchor="w").pack(fill="x")
             self.uf_var = ctk.StringVar(value="Todos")
             ctk.CTkOptionMenu(self.filter_frame, variable=self.uf_var, values=BRAZIL_UFS, width=260).pack(fill="x", pady=4)
+            self.uf_by_uf_var = ctk.BooleanVar(value=True)
+            ctk.CTkCheckBox(
+                self.filter_frame,
+                text="Extrair UF por UF (SP, RJ, MG…)",
+                variable=self.uf_by_uf_var,
+            ).pack(anchor="w")
             self.only_active_var = ctk.BooleanVar(value=True)
             ctk.CTkCheckBox(self.filter_frame, text="Apenas ativas", variable=self.only_active_var).pack(anchor="w")
             self.load_razao_var = ctk.BooleanVar(value=False)
@@ -615,8 +642,10 @@ class CompanyEmailApp(ctk.CTk):
             self.progress.set(min(max(progress, 0.0), 1.0))
 
     def _update_stats(self) -> None:
-        self.stat_total.configure(text=str(len(self.records)))
-        self.stat_emails.configure(text=str(len({r.get("email") for r in self.records})))
+        total = self._stream_total if self._stream_total else len(self.records)
+        self.stat_total.configure(text=f"{total:,}")
+        emails = self._stream_total if self._stream_total else len({r.get("email") for r in self.records})
+        self.stat_emails.configure(text=f"{emails:,}")
 
     def _refresh_table(self) -> None:
         for i in self.tree.get_children():
@@ -641,6 +670,88 @@ class CompanyEmailApp(ctk.CTk):
     def _stop_extraction(self) -> None:
         self._stop_requested = True
 
+    def _get_uf_targets(self, country_key: str, source_key: str) -> list[str | None]:
+        if country_key != "BR" or source_key not in ("receita_federal", "dadosbrasil_api"):
+            return [None]
+        uf = getattr(self, "uf_var", None)
+        current = uf.get() if uf else "Todos"
+        if current != "Todos":
+            return [current]
+        if getattr(self, "uf_by_uf_var", None) and self.uf_by_uf_var.get():
+            return list(BRAZIL_UF_CODES)
+        return [None]
+
+    def _normalize_record(self, record, country_key: str) -> dict:
+        row = record.to_dict() if hasattr(record, "to_dict") else dict(record)
+        if country_key == "BR" and row.get("cnpj"):
+            row["cnpj"] = format_cnpj(row["cnpj"])
+        if not row.get("pais"):
+            row["pais"] = country_key
+        return row
+
+    def _build_extract_kwargs(
+        self,
+        source_key: str,
+        country_key: str,
+        *,
+        uf_code: str | None,
+        max_records,
+        only_email: bool,
+        antibot: bool,
+        auto: bool,
+        progress_callback,
+    ) -> dict:
+        kwargs: dict = {
+            "max_records": max_records,
+            "only_with_email": only_email,
+            "progress_callback": progress_callback,
+            "aggressive_antibot": antibot,
+        }
+        if source_key.startswith("custom:"):
+            kwargs["auto_discover"] = auto
+            kwargs["max_sitemap_pages"] = None if auto else 1
+        elif source_key == "scraper":
+            url = self._ask_scraper_url()
+            if not url:
+                raise ValueError("URL não indicado.")
+            kwargs.update({"start_url": url, "crawl_same_site": auto, "max_crawl_pages": 30 if auto else 1})
+        elif source_key == "receita_federal":
+            kwargs.update({
+                "partitions": list(range(10)) if auto else [0],
+                "uf_filter": uf_code,
+                "only_active": getattr(self, "only_active_var", ctk.BooleanVar(value=True)).get(),
+                "load_razao_social": getattr(self, "load_razao_var", ctk.BooleanVar(value=False)).get(),
+                "use_local_zips_only": getattr(self, "use_local_zips_var", ctk.BooleanVar(value=False)).get(),
+                "data_dir": self._get_data_dir(),
+            })
+        elif source_key == "dadosbrasil_api":
+            kwargs["uf"] = uf_code
+        elif source_key == "fiz_portugal":
+            dist = getattr(self, "distrito_var", None)
+            kwargs.update({
+                "auto_discover": True,
+                "max_sitemap_pages": None if auto else 1,
+                "distrito": dist.get().strip() if dist and dist.get().strip() else None,
+                "aggressive_antibot": antibot,
+            })
+        elif source_key == "sitemap_generico":
+            url = self._ask_scraper_url() or FIZ_SITEMAP_INDEX
+            kwargs.update({
+                "sitemap_url": url,
+                "auto_discover": auto,
+                "include_all_sitemaps": True,
+            })
+        elif source_key == "website_scraper":
+            url = self._ask_scraper_url()
+            if not url:
+                raise ValueError("URL não indicado.")
+            kwargs.update({
+                "start_url": url,
+                "crawl_same_site": auto,
+                "max_crawl_pages": 50 if auto else 1,
+            })
+        return kwargs
+
     def _run_extraction(self) -> None:
         try:
             country_key, source_key, source = self._resolve_source()
@@ -649,72 +760,98 @@ class CompanyEmailApp(ctk.CTk):
             auto = self.mode_var.get() == "automatico"
             only_email = self.only_email_var.get()
             antibot = self.antibot_var.get()
+            streaming = self.stream_export_var.get()
             cb = lambda v, m: self.after(0, self._set_status, m, v)
 
-            kwargs: dict = {
-                "max_records": max_records,
-                "only_with_email": only_email,
-                "progress_callback": cb,
-                "aggressive_antibot": antibot,
-            }
+            uf_targets = self._get_uf_targets(country_key, source_key)
+            self._stream_total = 0
+            self._stream_results = []
+            ui_records: list[dict] = []
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self._stream_root = self._get_export_dir() / f"empresas_{country_key.lower()}_{stamp}"
+
+            if streaming:
+                for uf_code in uf_targets:
+                    if self._stop_requested:
+                        break
+                    uf_label = f"UF {uf_code}" if uf_code else "todos"
+                    self.after(0, self._set_status, f"A extrair {uf_label}...")
+                    base_name = f"UF_{uf_code}" if uf_code else "dados"
+                    try:
+                        kwargs = self._build_extract_kwargs(
+                            source_key, country_key,
+                            uf_code=uf_code,
+                            max_records=max_records,
+                            only_email=only_email,
+                            antibot=antibot,
+                            auto=auto,
+                            progress_callback=cb,
+                        )
+                    except ValueError:
+                        self.after(0, self._on_extraction_done_empty)
+                        return
+
+                    exporter = StreamingExporter(
+                        self._stream_root,
+                        base_name,
+                        selected_fields=self._get_selected_fields(),
+                        chunk_size=self._get_chunk_size(),
+                        write_csv=True,
+                        write_txt=True,
+                        use_sqlite=self.sqlite_stream_var.get(),
+                        unique_emails=only_email,
+                        check_mx=self.mx_validate_var.get(),
+                        require_email=self.only_email_var.get(),
+                        require_phone=self.require_phone_var.get(),
+                        require_cnpj=self.require_cnpj_var.get(),
+                        label=uf_label,
+                    )
+
+                    for record in source.extract(**kwargs):
+                        if self._stop_requested:
+                            break
+                        row = self._normalize_record(record, country_key)
+                        if exporter.add(row):
+                            self._stream_total += 1
+                            ui_records.append(row)
+                            if len(ui_records) > 500:
+                                ui_records.pop(0)
+                            if self._stream_total % 500 == 0:
+                                n = self._stream_total
+                                self.after(0, lambda n=n: self._set_status(
+                                    f"{n:,} guardados em disco ({uf_label})..."
+                                ))
+
+                    self._stream_results.append(exporter.close())
+
+                self.records = ui_records
+                self._selected_export_fields = self._get_selected_fields()
+                self.after(0, self._on_extraction_done)
+                return
+
             new_records: list[dict] = []
-
-            if source_key.startswith("custom:"):
-                kwargs["auto_discover"] = auto
-                kwargs["max_sitemap_pages"] = None if auto else 1
-            elif source_key == "scraper":
-                url = self._ask_scraper_url()
-                if not url:
-                    self.after(0, self._on_extraction_done_empty)
-                    return
-                kwargs.update({"start_url": url, "crawl_same_site": auto, "max_crawl_pages": 30 if auto else 1})
-            elif source_key == "receita_federal":
-                uf = getattr(self, "uf_var", None)
-                kwargs.update({
-                    "partitions": list(range(10)) if auto else [0],
-                    "uf_filter": None if not uf or uf.get() == "Todos" else uf.get(),
-                    "only_active": getattr(self, "only_active_var", ctk.BooleanVar(value=True)).get(),
-                    "load_razao_social": getattr(self, "load_razao_var", ctk.BooleanVar(value=False)).get(),
-                    "use_local_zips_only": getattr(self, "use_local_zips_var", ctk.BooleanVar(value=False)).get(),
-                    "data_dir": self._get_data_dir(),
-                })
-            elif source_key == "dadosbrasil_api":
-                uf = getattr(self, "uf_var", None)
-                kwargs["uf"] = None if not uf or uf.get() == "Todos" else uf.get()
-            elif source_key == "fiz_portugal":
-                dist = getattr(self, "distrito_var", None)
-                kwargs.update({"auto_discover": True, "max_sitemap_pages": None if auto else 1,
-                               "distrito": dist.get().strip() if dist and dist.get().strip() else None,
-                               "aggressive_antibot": antibot})
-            elif source_key == "sitemap_generico":
-                url = self._ask_scraper_url() or FIZ_SITEMAP_INDEX
-                kwargs.update({
-                    "sitemap_url": url,
-                    "auto_discover": auto,
-                    "include_all_sitemaps": True,
-                })
-            elif source_key == "website_scraper":
-                url = self._ask_scraper_url()
-                if not url:
-                    self.after(0, self._on_extraction_done_empty)
-                    return
-                kwargs.update({
-                    "start_url": url,
-                    "crawl_same_site": auto,
-                    "max_crawl_pages": 50 if auto else 1,
-                })
-
-            for record in source.extract(**kwargs):
+            for uf_code in uf_targets:
                 if self._stop_requested:
                     break
-                row = record.to_dict()
-                if country_key == "BR" and row.get("cnpj"):
-                    row["cnpj"] = format_cnpj(row["cnpj"])
-                if not row.get("pais"):
-                    row["pais"] = country_key
-                new_records.append(row)
-                if len(new_records) % 10 == 0:
-                    self.after(0, lambda n=len(new_records): self._set_status(f"{n:,} registos..."))
+                try:
+                    kwargs = self._build_extract_kwargs(
+                        source_key, country_key,
+                        uf_code=uf_code,
+                        max_records=max_records,
+                        only_email=only_email,
+                        antibot=antibot,
+                        auto=auto,
+                        progress_callback=cb,
+                    )
+                except ValueError:
+                    self.after(0, self._on_extraction_done_empty)
+                    return
+                for record in source.extract(**kwargs):
+                    if self._stop_requested:
+                        break
+                    new_records.append(self._normalize_record(record, country_key))
+                    if len(new_records) % 10 == 0:
+                        self.after(0, lambda n=len(new_records): self._set_status(f"{n:,} registos..."))
 
             cleaned = filter_valid_email_records(new_records)
             if self.mx_validate_var.get():
@@ -766,18 +903,26 @@ class CompanyEmailApp(ctk.CTk):
         self._refresh_table()
         self.stat_status.configure(text="Concluído")
         self.progress.set(1.0)
-        msg = f"Extração concluída: {len(self.records):,} registos"
+        msg = f"Extração concluída: {self._stream_total or len(self.records):,} registos"
         self._set_status(msg, 1.0)
+
+        if self._stream_results:
+            summaries = [result.summary for result in self._stream_results]
+            root = self._stream_root or self._get_export_dir()
+            messagebox.showinfo(
+                APP_NAME,
+                f"{msg}\n\nGuardado em tempo real em:\n{root}\n\n" + "\n---\n".join(summaries[:3])
+                + (f"\n\n... e mais {len(summaries) - 3} UF(s)" if len(summaries) > 3 else ""),
+            )
+            return
+
         saved_path = None
         saved_summary = None
         if self.records and self.auto_export_var.get():
             saved_path, saved_summary = self._export_to_folder(silent=True)
         if self.records:
             if saved_path:
-                messagebox.showinfo(
-                    APP_NAME,
-                    f"{msg}\n\n{saved_summary or saved_path}",
-                )
+                messagebox.showinfo(APP_NAME, f"{msg}\n\n{saved_summary or saved_path}")
             else:
                 messagebox.showinfo(APP_NAME, msg)
 
@@ -790,6 +935,9 @@ class CompanyEmailApp(ctk.CTk):
 
     def _clear_results(self) -> None:
         self.records = []
+        self._stream_total = 0
+        self._stream_results = []
+        self._stream_root = None
         self._refresh_table()
         self._update_stats()
         self.progress.set(0)
