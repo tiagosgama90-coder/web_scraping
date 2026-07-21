@@ -6,7 +6,9 @@ from typing import Iterable
 
 import pandas as pd
 
+from cnpj_extractor.field_filters import DEFAULT_FIELD_KEYS, get_field_labels, project_records
 from cnpj_extractor.models import CompanyEmail
+from cnpj_extractor.utils import clean_and_validate_email, dedupe_by_email, filter_valid_email_records
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS empresas (
@@ -64,10 +66,107 @@ def records_to_dataframe(records: Iterable[CompanyEmail | dict]) -> pd.DataFrame
     return pd.DataFrame(rows)
 
 
-def export_csv(records: Iterable[CompanyEmail | dict], path: str | Path) -> Path:
+def export_filtered_csv(
+    records: Iterable[CompanyEmail | dict],
+    path: str | Path,
+    *,
+    selected_fields: list[str] | None = None,
+    unique_emails: bool = True,
+) -> Path:
+    """Exporta CSV com colunas escolhidas pelo utilizador."""
+    rows = [
+        record.to_dict() if isinstance(record, CompanyEmail) else dict(record)
+        for record in records
+    ]
+    cleaned = filter_valid_email_records(rows)
+    if unique_emails and "email" in (selected_fields or DEFAULT_FIELD_KEYS):
+        cleaned = dedupe_by_email(cleaned)
+
+    fields = selected_fields or DEFAULT_FIELD_KEYS
+    projected = project_records(cleaned, fields)
+
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    labels = [get_field_labels().get(f, f) for f in fields]
+    df = pd.DataFrame(projected, columns=labels) if projected else pd.DataFrame(columns=labels)
+    df.to_csv(output, index=False, encoding="utf-8-sig")
+    return output
+
+
+def export_csv(
+    records: Iterable[CompanyEmail | dict],
+    path: str | Path,
+    *,
+    selected_fields: list[str] | None = None,
+) -> Path:
+    if selected_fields:
+        return export_filtered_csv(records, path, selected_fields=selected_fields, unique_emails=False)
     output = Path(path)
     output.parent.mkdir(parents=True, exist_ok=True)
     df = records_to_dataframe(records)
+    df.to_csv(output, index=False, encoding="utf-8-sig")
+    return output
+
+
+def export_emails_only_csv(
+    records: Iterable[CompanyEmail | dict],
+    path: str | Path,
+    *,
+    unique_emails: bool = True,
+) -> Path:
+    """
+    Exporta lista limpa para Excel — apenas e-mails validados.
+    Colunas: email, empresa, cnpj, uf, municipio
+    """
+    rows = [
+        record.to_dict() if isinstance(record, CompanyEmail) else dict(record)
+        for record in records
+    ]
+    cleaned = filter_valid_email_records(rows)
+    if unique_emails:
+        cleaned = dedupe_by_email(cleaned)
+
+    export_rows = []
+    for row in cleaned:
+        export_rows.append(
+            {
+                "email": row.get("email", ""),
+                "empresa": (row.get("razao_social") or row.get("nome_fantasia") or "").strip(),
+                "cnpj": row.get("cnpj", ""),
+                "uf": row.get("uf", ""),
+                "municipio": row.get("municipio", ""),
+            }
+        )
+
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    df = pd.DataFrame(export_rows, columns=["email", "empresa", "cnpj", "uf", "municipio"])
+    df.to_csv(output, index=False, encoding="utf-8-sig")
+    return output
+
+
+def export_emails_for_marketing_csv(
+    records: Iterable[CompanyEmail | dict],
+    path: str | Path,
+) -> Path:
+    """Formato compatível com Mailchimp, Brevo, etc.: email + nome."""
+    rows = [
+        record.to_dict() if isinstance(record, CompanyEmail) else dict(record)
+        for record in records
+    ]
+    cleaned = dedupe_by_email(filter_valid_email_records(rows))
+
+    export_rows = [
+        {
+            "email": row.get("email", ""),
+            "nome": (row.get("razao_social") or row.get("nome_fantasia") or "Empresa").strip(),
+        }
+        for row in cleaned
+    ]
+
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    df = pd.DataFrame(export_rows, columns=["email", "nome"])
     df.to_csv(output, index=False, encoding="utf-8-sig")
     return output
 

@@ -7,6 +7,33 @@ EMAIL_PATTERN = re.compile(
     r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$"
 )
 
+JUNK_EMAIL_PREFIXES = (
+    "noreply",
+    "no-reply",
+    "nao-responda",
+    "donotreply",
+    "mailer-daemon",
+    "postmaster",
+    "abuse",
+    "bounce",
+    "spam",
+    "root",
+    "admin@",
+)
+
+JUNK_EMAIL_DOMAINS = (
+    "example.com",
+    "example.org",
+    "test.com",
+    "teste.com",
+    "email.com",
+    "naoinformado",
+    "sememail",
+    "naotem",
+    "invalid",
+    "localhost",
+)
+
 SITUACAO_MAP = {
     "01": "Nula",
     "02": "Ativa",
@@ -35,10 +62,29 @@ def format_cnpj(value: str) -> str:
 
 
 def is_valid_email(value: str) -> bool:
-    email = (value or "").strip().lower()
-    if not email or email in {"n/a", "na", "null", "none", "-", "0"}:
-        return False
-    return bool(EMAIL_PATTERN.match(email))
+    return clean_and_validate_email(value) is not None
+
+
+def clean_and_validate_email(value: str) -> str | None:
+    """Normaliza e valida e-mail — rejeita lixo comum em bases públicas."""
+    email = normalize_email(value)
+    if not email or email in {"n/a", "na", "null", "none", "-", "0", "nao@nao.com"}:
+        return None
+    if not EMAIL_PATTERN.match(email):
+        return None
+
+    local, _, domain = email.partition("@")
+    if not local or not domain or "." not in domain:
+        return None
+
+    if any(email.startswith(prefix) or local == prefix.rstrip("@") for prefix in JUNK_EMAIL_PREFIXES):
+        return None
+    if any(junk in domain for junk in JUNK_EMAIL_DOMAINS):
+        return None
+    if len(local) < 2 or len(domain) < 4:
+        return None
+
+    return email
 
 
 def normalize_email(value: str) -> str:
@@ -82,3 +128,31 @@ def dedupe_records(records: Iterable[dict]) -> list[dict]:
         seen.add(key)
         unique.append(record)
     return unique
+
+
+def dedupe_by_email(records: Iterable[dict]) -> list[dict]:
+    """Remove e-mails duplicados — mantém o primeiro registo de cada e-mail."""
+    seen: set[str] = set()
+    unique: list[dict] = []
+    for record in records:
+        email = clean_and_validate_email(record.get("email", ""))
+        if not email or email in seen:
+            continue
+        seen.add(email)
+        row = dict(record)
+        row["email"] = email
+        unique.append(row)
+    return unique
+
+
+def filter_valid_email_records(records: Iterable[dict]) -> list[dict]:
+    """Mantém apenas registos com e-mail válido e limpo."""
+    result: list[dict] = []
+    for record in records:
+        email = clean_and_validate_email(record.get("email", ""))
+        if not email:
+            continue
+        row = dict(record)
+        row["email"] = email
+        result.append(row)
+    return result
