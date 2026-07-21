@@ -50,9 +50,11 @@ from cnpj_extractor.free_proxy_pool import (
     get_cached_working_proxy,
     prewarm_proxy_pool,
 )
+from cnpj_extractor.ip_check import compare_ips, lookup_ip
 from cnpj_extractor.proxy_config import (
     clear_active_proxy,
     clear_free_proxy_mode,
+    get_active_proxy,
     is_valid_proxy_url,
     mask_proxy_for_display,
     normalize_proxy_url,
@@ -86,7 +88,7 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.14.0"
+APP_VERSION = "2.14.1"
 
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
@@ -374,7 +376,14 @@ class CompanyEmailApp(ctk.CTk):
             justify="left",
             anchor="w",
         )
-        self._hide_ip_status.pack(fill="x", padx=10, pady=(0, 6))
+        self._hide_ip_status.pack(fill="x", padx=10, pady=(0, 4))
+        ctk.CTkButton(
+            privacy,
+            text="🔍 Verificar IP / País",
+            height=28,
+            font=ctk.CTkFont(size=11),
+            command=self._verify_ip_now,
+        ).pack(fill="x", padx=10, pady=(0, 6))
         self.fingerprint_mask_var = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             privacy,
@@ -966,7 +975,52 @@ class CompanyEmailApp(ctk.CTk):
         def report(msg: str) -> None:
             self.after(0, self._hide_ip_status.configure, {"text": msg})
 
-        prewarm_proxy_pool(max_tries=18, progress_callback=report)
+        url = prewarm_proxy_pool(max_tries=18, progress_callback=report)
+        if url:
+            set_active_proxy(url)
+            info = lookup_ip(proxy_url=url)
+            if info:
+                report(f"✅ IP oculto: {info.ip} — {info.country or 'país desconhecido'}")
+
+    def _verify_ip_now(self) -> None:
+        self._hide_ip_status.configure(text="🔍 A verificar IP real vs IP oculto...")
+        threading.Thread(target=self._verify_ip_worker, daemon=True).start()
+
+    def _verify_ip_worker(self) -> None:
+        try:
+            if self.hide_ip_var.get() and not get_cached_working_proxy():
+                if not get_active_proxy():
+                    url = acquire_working_proxy(max_tries=15)
+                    if url:
+                        set_active_proxy(url)
+
+            result = compare_ips()
+            real = result.get("real")
+            proxied = result.get("proxied")
+
+            lines = ["VERIFICAÇÃO DE IP\n"]
+            if real:
+                lines.append(f"IP REAL (sua internet):\n  {real.summary()}\n")
+            else:
+                lines.append("IP REAL: não foi possível verificar.\n")
+
+            if self.hide_ip_var.get():
+                if proxied:
+                    lines.append(f"IP DO SOFTWARE (oculto):\n  {proxied.summary()}\n")
+                    if real and real.ip != proxied.ip:
+                        lines.append("✅ O IP está OCULTO — os sites veem outro IP.")
+                    elif real:
+                        lines.append("⚠ O IP parece igual — tente novamente.")
+                else:
+                    lines.append("IP DO SOFTWARE: proxy ainda não pronto.\nAguarde ou inicie uma extração.")
+            else:
+                lines.append("Hide My IP está DESATIVADO.\nOs sites veem o seu IP real.")
+
+            message = "\n".join(lines)
+            self.after(0, self._hide_ip_status.configure, {"text": message.split("\n")[-2] if proxied else "Verificação concluída."})
+            self.after(0, messagebox.showinfo, APP_NAME, message)
+        except Exception as exc:
+            self.after(0, messagebox.showerror, APP_NAME, f"Erro ao verificar IP:\n{exc}")
 
     def _uses_manual_proxy(self) -> bool:
         return self.advanced_proxy_var.get() and bool(self.proxy_url_var.get().strip())
@@ -1063,12 +1117,15 @@ class CompanyEmailApp(ctk.CTk):
                 )
                 return False
             set_active_proxy(url)
-            self.after(
-                0,
-                self._hide_ip_status.configure,
-                {"text": f"✅ IP oculto: {mask_proxy_for_display(url)}"},
-            )
-            self.after(0, self._set_status, f"🌐 Hide My IP ativo: {mask_proxy_for_display(url)}")
+            info = lookup_ip(proxy_url=url)
+            if info:
+                country = info.country or "país desconhecido"
+                self.after(
+                    0,
+                    self._hide_ip_status.configure,
+                    {"text": f"✅ IP oculto: {info.ip} — {country}"},
+                )
+                self.after(0, self._set_status, f"🌐 Hide My IP ativo: {info.ip} ({country})")
             return True
 
         set_free_proxy_mode(False)
