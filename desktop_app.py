@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aplicação desktop nativa — Company Email Extractor v2.16."""
+"""Aplicação desktop nativa — Company Email Extractor v2.16.1."""
 
 from __future__ import annotations
 
@@ -88,12 +88,17 @@ ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
 APP_NAME = "Company Email Extractor"
-APP_VERSION = "2.16.0"
+APP_VERSION = "2.16.1"
 
 HUD_BG = "#060b14"
 HUD_FG = "#00a8ff"
 HUD_BORDER = "#0d47a1"
 HUD_FONT = ("Consolas", 12)
+
+ACTIVITY_BG = ("gray94", "gray14")
+ACTIVITY_FG = ("gray15", "#9fd4ff")
+ACTIVITY_FONT = ("Consolas", 10)
+MAX_ACTIVITY_LINES = 500
 
 DEFAULT_BASE_DIR = Path.home() / "Documents" / "CompanyEmailExtractor"
 DEFAULT_DATA_DIR = DEFAULT_BASE_DIR / "downloads"
@@ -233,6 +238,7 @@ class CompanyEmailApp(ctk.CTk):
         self._hud_ready = False
         self._last_real_ip: IpInfo | None = None
         self._last_hidden_ip: IpInfo | None = None
+        self._last_logged_count = 0
 
         self._build_ui()
         self.start_btn.configure(state="disabled")
@@ -605,8 +611,30 @@ class CompanyEmailApp(ctk.CTk):
         self.tree.grid(row=0, column=0, sticky="nsew")
         sy.grid(row=0, column=1, sticky="ns")
 
+        activity_wrap = ctk.CTkFrame(parent, fg_color=ACTIVITY_BG, corner_radius=8, border_width=1, border_color=HUD_BORDER)
+        activity_wrap.grid(row=5, column=0, sticky="ew", padx=12, pady=(0, 6))
+        activity_wrap.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            activity_wrap,
+            text="📋 ATIVIDADE EM TEMPO REAL — o que o software está a fazer agora",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 4))
+        self._activity_log = ctk.CTkTextbox(
+            activity_wrap,
+            height=140,
+            font=ctk.CTkFont(family="Consolas", size=10),
+            fg_color=ACTIVITY_BG,
+            text_color=ACTIVITY_FG,
+            wrap="word",
+            activate_scrollbars=True,
+        )
+        self._activity_log.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 8))
+        self._activity_log.insert("1.0", "Pronto. Escolha uma base e clique Pré-visualizar ou INICIAR EXTRAÇÃO.\n")
+        self._activity_log.configure(state="disabled")
+
         exp = ctk.CTkFrame(parent, fg_color="transparent")
-        exp.grid(row=5, column=0, sticky="ew", padx=12, pady=(4, 12))
+        exp.grid(row=6, column=0, sticky="ew", padx=12, pady=(4, 12))
         ctk.CTkButton(exp, text="📥 CSV filtrado", command=self._export_filtered, width=120,
                       fg_color="#1a5276", hover_color="#154360").pack(side="left", padx=(0, 6))
         ctk.CTkButton(exp, text="📂 Guardar na pasta", command=self._export_to_folder, width=130,
@@ -994,10 +1022,80 @@ class CompanyEmailApp(ctk.CTk):
             return country, "scraper", WebScraperSource()
         raise ValueError("Selecione uma fonte válida.")
 
-    def _set_status(self, msg: str, progress: float | None = None) -> None:
+    def _set_status(self, msg: str, progress: float | None = None, *, log: bool | None = None) -> None:
         self.status_label.configure(text=msg)
+        should_log = self._extracting if log is None else log
+        if msg and should_log:
+            self._append_activity(msg, kind="step")
         if progress is not None:
             self.progress.set(min(max(progress, 0.0), 1.0))
+
+    def _on_progress_update(self, value: float, message: str) -> None:
+        self.status_label.configure(text=message)
+        self._append_activity(message, kind="step")
+        self.progress.set(min(max(value, 0.0), 1.0))
+
+    def _append_activity(self, message: str, *, kind: str = "info") -> None:
+        if not getattr(self, "_activity_log", None):
+            return
+        ts = datetime.now().strftime("%H:%M:%S")
+        prefix = {
+            "info": "•",
+            "step": "▸",
+            "ok": "✓",
+            "warn": "!",
+            "capture": "→",
+            "error": "✗",
+        }.get(kind, "•")
+        line = f"[{ts}] {prefix} {message}\n"
+        self._activity_log.configure(state="normal")
+        self._activity_log.insert("end", line)
+        line_count = int(self._activity_log.index("end-1c").split(".")[0])
+        if line_count > MAX_ACTIVITY_LINES:
+            self._activity_log.delete("1.0", f"{line_count - MAX_ACTIVITY_LINES}.0")
+        self._activity_log.see("end")
+        self._activity_log.configure(state="disabled")
+
+    def _clear_activity_log(self) -> None:
+        if not getattr(self, "_activity_log", None):
+            return
+        self._activity_log.configure(state="normal")
+        self._activity_log.delete("1.0", "end")
+        self._activity_log.configure(state="disabled")
+        self._last_logged_count = 0
+
+    def _log_capture(self, row: dict) -> None:
+        empresa = (row.get("razao_social") or row.get("empresa") or "—")[:42]
+        email = row.get("email") or "—"
+        local = (row.get("municipio") or row.get("uf") or row.get("local") or "")[:24]
+        detail = f"{empresa} | {email}"
+        if local:
+            detail += f" | {local}"
+        self._append_activity(detail, kind="capture")
+
+    def _log_extraction_start(self, *, preview: bool) -> None:
+        self._clear_activity_log()
+        mode = "PRÉ-VISUALIZAÇÃO" if preview else "EXTRAÇÃO COMPLETA"
+        self._append_activity(f"Início: {mode}", kind="ok")
+        self._append_activity(f"Base: {self.source_var.get()}", kind="info")
+        self._append_activity(f"País/filtros: {self.country_var.get()}", kind="info")
+        if preview:
+            try:
+                n = int(self.preview_count_var.get().strip() or "25")
+            except ValueError:
+                n = 25
+            self._append_activity(f"Objetivo: captar até {max(1, min(n, 500))} registos (sem gravar ficheiros)", kind="info")
+        else:
+            limite = self.max_var.get().strip() or "100"
+            modo = self.mode_var.get()
+            self._append_activity(f"Modo: {modo} | Limite: {limite}", kind="info")
+            if self.stream_export_var.get():
+                self._append_activity("Gravação em tempo real: ATIVADA", kind="info")
+        if self.antibot_var.get():
+            self._append_activity("Anti-Bot: ATIVO", kind="info")
+        if self.hide_ip_var.get():
+            self._append_activity("Hide My IP: ATIVO", kind="info")
+        self._append_activity("A preparar ligação e a começar...", kind="step")
 
     def _update_stats(self) -> None:
         total = self._stream_total if self._stream_total else len(self.records)
@@ -1223,6 +1321,7 @@ class CompanyEmailApp(ctk.CTk):
         self._stream_total = 0
         self._stream_root = None
         self.records = []
+        self._log_extraction_start(preview=True)
         self.start_btn.configure(state="disabled")
         self.preview_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
@@ -1240,6 +1339,7 @@ class CompanyEmailApp(ctk.CTk):
         self._extracting = True
         self._is_preview = False
         self._stop_requested = False
+        self._log_extraction_start(preview=False)
         self.start_btn.configure(state="disabled")
         self.preview_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
@@ -1249,6 +1349,7 @@ class CompanyEmailApp(ctk.CTk):
 
     def _stop_extraction(self) -> None:
         self._stop_requested = True
+        self._append_activity("Pedido de paragem enviado...", kind="warn")
 
     def _get_uf_targets(self, country_key: str, source_key: str) -> list[str | None]:
         if country_key != "BR" or source_key not in ("receita_federal", "dadosbrasil_api"):
@@ -1402,7 +1503,7 @@ class CompanyEmailApp(ctk.CTk):
             only_email = self.only_email_var.get()
             antibot = self.antibot_var.get()
             streaming = self.stream_export_var.get() and not preview
-            cb = lambda v, m: self.after(0, self._set_status, m, v)
+            cb = lambda v, m: self.after(0, self._on_progress_update, v, m)
 
             uf_targets = self._get_uf_targets(country_key, source_key)
             self._stream_total = 0
@@ -1462,11 +1563,11 @@ class CompanyEmailApp(ctk.CTk):
                             ui_records.append(row)
                             if len(ui_records) > 500:
                                 ui_records.pop(0)
-                            if self._stream_total % 25 == 0 or self._stream_total <= 5:
-                                batch = list(ui_records)
-                                n = self._stream_total
-                                self.after(0, lambda b=batch, n=n: self._update_live_table(b, n))
-                            if self._stream_total % 500 == 0:
+                            n = self._stream_total
+                            batch = list(ui_records)
+                            refresh = preview or n % 25 == 0 or n <= 5
+                            self.after(0, lambda r=row, c=n, b=batch, rt=refresh: self._register_capture(r, c, b, refresh_table=rt))
+                            if not preview and self._stream_total % 500 == 0:
                                 n = self._stream_total
                                 self.after(0, lambda n=n: self._set_status(
                                     f"{n:,} guardados em disco ({uf_label})..."
@@ -1503,16 +1604,16 @@ class CompanyEmailApp(ctk.CTk):
                     if not self._record_passes_sector(row):
                         continue
                     new_records.append(row)
-                    if len(new_records) % 5 == 0 or len(new_records) <= 3:
-                        batch = list(new_records)
-                        n = len(new_records)
-                        self.after(0, lambda b=batch, n=n: self._update_live_table(b, n))
-                    if len(new_records) % 10 == 0:
-                        self.after(0, lambda n=len(new_records): self._set_status(f"{n:,} registos..."))
+                    n = len(new_records)
+                    batch = list(new_records)
+                    refresh = preview or n % 5 == 0 or n <= 3
+                    self.after(0, lambda r=row, c=n, b=batch, rt=refresh: self._register_capture(r, c, b, refresh_table=rt))
+                    if not preview and len(new_records) % 10 == 0:
+                        self.after(0, lambda n=len(new_records): self._set_status(f"{n:,} registos capturados..."))
 
             cleaned = filter_valid_email_records(new_records)
             if self.mx_validate_var.get():
-                mx_cb = lambda v, m: self.after(0, self._set_status, m, v)
+                mx_cb = lambda v, m: self.after(0, self._on_progress_update, v, m)
                 cleaned, _ = filter_records_with_mx(cleaned, check_mx=True, progress_callback=mx_cb)
             cleaned = filter_records_by_requirements(
                 cleaned,
@@ -1552,12 +1653,24 @@ class CompanyEmailApp(ctk.CTk):
         evt.wait(timeout=120)
         return result[0]
 
+    def _register_capture(self, row: dict, count: int, batch: list[dict], *, refresh_table: bool) -> None:
+        self._log_capture(row)
+        self.stat_total.configure(text=f"{count:,}")
+        emails = len({r.get("email") for r in batch if r.get("email")})
+        self.stat_emails.configure(text=f"{emails:,}")
+        self.stat_status.configure(text=f"A captar… ({count:,})")
+        if refresh_table:
+            self.records = batch
+            self._refresh_table(show_all=self._is_preview)
+
     def _update_live_table(self, rows: list[dict], count: int) -> None:
         self.records = rows
         self._refresh_table(show_all=self._is_preview)
         self.stat_total.configure(text=f"{count:,}")
         emails = len({r.get("email") for r in rows if r.get("email")})
         self.stat_emails.configure(text=f"{emails:,}")
+        if rows:
+            self.stat_status.configure(text=f"A captar… ({count:,})")
 
     def _on_extraction_done_empty(self) -> None:
         self._extracting = False
@@ -1579,6 +1692,7 @@ class CompanyEmailApp(ctk.CTk):
             self.stat_status.configure(text="Pré-visualização")
             self.progress.set(1.0)
             msg = f"Pré-visualização: {len(self.records):,} registos na tabela"
+            self._append_activity(msg, kind="ok")
             self._set_status(msg, 1.0)
             if self.records:
                 messagebox.showinfo(
@@ -1597,6 +1711,9 @@ class CompanyEmailApp(ctk.CTk):
         self.stat_status.configure(text="Concluído")
         self.progress.set(1.0)
         msg = f"Extração concluída: {self._stream_total or len(self.records):,} registos"
+        self._append_activity(msg, kind="ok")
+        if self._stream_root:
+            self._append_activity(f"Ficheiros em: {self._stream_root}", kind="info")
         self._set_status(msg, 1.0)
 
         if self._stream_results:
@@ -1626,6 +1743,7 @@ class CompanyEmailApp(ctk.CTk):
         self.preview_btn.configure(state="normal")
         self.stop_btn.configure(state="disabled")
         self.stat_status.configure(text="Erro")
+        self._append_activity(f"ERRO: {error}", kind="error")
         messagebox.showerror(APP_NAME, f"Erro:\n{error}")
 
     def _clear_results(self) -> None:

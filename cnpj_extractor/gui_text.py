@@ -61,6 +61,11 @@ No separador «Extrair», logo ABAIXO do painel HUD, há três botões GRANDES:
 
 Aguarde SYS: READY no HUD antes de clicar.
 
+EM BAIXO do ecrã há o painel «ATIVIDADE EM TEMPO REAL»:
+  • Mostra o que o software está a fazer (descobrir sitemaps, anti-bot, etc.)
+  • Lista cada empresa/email capturado à medida que aparece
+  • Indica erros e quando a extração termina
+
 
 PASSO 5 — PAINEL HUD + HIDE MY IP
 ----------------------------------
