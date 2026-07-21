@@ -66,15 +66,20 @@ Na barra lateral pode escolher:
   • Obrigatório ter e-mail / telefone / CNPJ
   • Validar domínio DNS/MX (verifica se o domínio tem servidor de email)
   • Guardar CSV filtrado automaticamente ao concluir
+  • Gravar ficheiros ENQUANTO extrai (não espera pelo fim)
+  • SQLite em tempo real para volumes enormes (10M+)
+  • Brasil: Extrair UF por UF (pasta SP, RJ, MG…)
+  • Filtro por setor: CNAE (BR), CAE/ISIC (PT), ISIC (outros)
+  • Vários códigos: 62, 47, 86 — prefixo funciona (62 inclui 6201, 6202…)
 
 
 PASSO 6 — INICIAR E EXPORTAR
 -----------------------------
   1. Clique "▶ Iniciar Extração"
   2. Veja os resultados na tabela
-  3. O CSV filtrado é guardado na pasta de exportação (se ativo)
-  4. Por defeito divide em ficheiros de 1000 linhas (abre no Excel)
-  5. Ou use: CSV filtrado | Guardar na pasta | Só emails | Emails .txt
+  3. Os ficheiros são guardados EM TEMPO REAL na pasta de exportação
+  4. CSV em partes de 1000 linhas + SQLite + emails .txt
+  5. Brasil com "Todos": extrai UF por UF automaticamente
 
 
 ADICIONAR NOVO SITE RAPIDAMENTE

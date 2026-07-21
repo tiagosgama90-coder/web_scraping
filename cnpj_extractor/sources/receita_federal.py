@@ -18,6 +18,7 @@ from cnpj_extractor.utils import (
     normalize_email,
     normalize_situacao,
 )
+from cnpj_extractor.sector_filters import matches_sector
 
 CASADOS_DADOS_BASE = "https://dados-abertos-rf-cnpj.casadosdados.com.br/arquivos/"
 MIN_ZIP_BYTES = 100
@@ -212,6 +213,7 @@ class ReceitaFederalSource(BaseSource):
         data_dir: str | Path = "data/rfb",
         partitions: list[int] | None = None,
         uf_filter: str | None = None,
+        cnae_filter: str | None = None,
         only_active: bool = True,
         only_with_email: bool = True,
         max_records: int | None = None,
@@ -268,6 +270,10 @@ class ReceitaFederalSource(BaseSource):
                 if uf_filter and uf != uf_filter.upper():
                     continue
 
+                cnae_value = (row[11] or "").strip()
+                if cnae_filter and not matches_sector(cnae_value, cnae_filter):
+                    continue
+
                 situacao = normalize_situacao(row[5])
                 if only_active and situacao not in {"Ativa", "02", "2"}:
                     continue
@@ -282,7 +288,7 @@ class ReceitaFederalSource(BaseSource):
                     telefone=telefone,
                     uf=uf,
                     municipio=(row[20] or "").strip(),
-                    cnae=(row[11] or "").strip(),
+                    cnae=cnae_value,
                     situacao=situacao,
                     pais="BR",
                     fonte=self.name,

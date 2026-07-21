@@ -4,6 +4,7 @@ from typing import Iterator
 
 from cnpj_extractor.custom_sources import CustomSource, parse_url_list
 from cnpj_extractor.models import CompanyEmail
+from cnpj_extractor.sector_filters import matches_sector
 from cnpj_extractor.sources.base import BaseSource, ProgressCallback
 from cnpj_extractor.sources.sitemap_generic import GenericSitemapSource
 from cnpj_extractor.sources.website_scraper import WebScraperSource
@@ -26,10 +27,17 @@ class CustomSourceAdapter(BaseSource):
         auto_discover: bool | None = None,
         max_sitemap_pages: int | None = None,
         aggressive_antibot: bool = True,
+        sector_filter: str | None = None,
         progress_callback: ProgressCallback = None,
     ) -> Iterator[CompanyEmail]:
         auto = auto_discover if auto_discover is not None else self.config.auto_discover
         source_type = self.config.source_type
+
+        def emit(records: Iterator[CompanyEmail]) -> Iterator[CompanyEmail]:
+            for record in records:
+                if sector_filter and not matches_sector(record.cnae, sector_filter):
+                    continue
+                yield record
 
         if source_type == "sitemap":
             scraper = GenericSitemapSource(aggressive_antibot=aggressive_antibot)
@@ -39,6 +47,7 @@ class CustomSourceAdapter(BaseSource):
                 "include_all_sitemaps": True,
                 "only_with_email": only_with_email,
                 "max_records": max_records,
+                "sector_filter": sector_filter,
                 "progress_callback": progress_callback,
             }
             if max_sitemap_pages is not None and not auto:
@@ -55,16 +64,16 @@ class CustomSourceAdapter(BaseSource):
                     if result.text:
                         urls.extend(parse_urlset(result.text))
                 web = WebScraperSource(aggressive_antibot=aggressive_antibot)
-                yield from web.extract(
+                yield from emit(web.extract(
                     urls=urls,
                     only_with_email=only_with_email,
                     max_records=max_records,
                     progress_callback=progress_callback,
                     source_name=self.config.name,
-                )
+                ))
                 return
 
-            for record in scraper.extract(**kwargs):
+            for record in emit(scraper.extract(**kwargs)):
                 record.fonte = self.config.name
                 record.pais = self.config.country if self.config.country != "OUTRO" else record.pais
                 yield record
@@ -72,17 +81,17 @@ class CustomSourceAdapter(BaseSource):
         elif source_type == "urls":
             urls = parse_url_list(self.config.url_list or self.config.url)
             web = WebScraperSource(aggressive_antibot=aggressive_antibot)
-            yield from web.extract(
+            yield from emit(web.extract(
                 urls=urls,
                 only_with_email=only_with_email,
                 max_records=max_records,
                 progress_callback=progress_callback,
                 source_name=self.config.name,
-            )
+            ))
 
         elif source_type == "pagina":
             web = WebScraperSource(aggressive_antibot=aggressive_antibot)
-            yield from web.extract(
+            yield from emit(web.extract(
                 start_url=self.config.url,
                 crawl_same_site=auto,
                 max_crawl_pages=50 if auto else 1,
@@ -90,7 +99,7 @@ class CustomSourceAdapter(BaseSource):
                 max_records=max_records,
                 progress_callback=progress_callback,
                 source_name=self.config.name,
-            )
+            ))
 
         else:
             raise ValueError(f"Tipo de fonte desconhecido: {source_type}")
