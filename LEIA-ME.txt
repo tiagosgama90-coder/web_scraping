@@ -1,5 +1,5 @@
 ================================================================================
-  COMPANY EMAIL EXTRACTOR v2.9 — LEIA-ME
+  COMPANY EMAIL EXTRACTOR v2.10 — LEIA-ME
 ================================================================================
 
 INSTALACAO
@@ -50,6 +50,16 @@ PRE-VISUALIZAR
 - Veja emails na TABELA (separador Extrair)
 - NAO grava ficheiros na pre-visualizacao
 - Se OK -> "Iniciar Extracao"
+
+PROXY / VPN — OCULTAR IP (v2.10)
+--------------------------------
+1. Ative na barra lateral: "Proxy / VPN (ocultar IP)"
+2. Cole o endereco do proxy da sua VPN, ex:
+     socks5://127.0.0.1:1080
+     http://127.0.0.1:8080
+3. Muitas VPNs fornecem proxy local — veja as definicoes da VPN
+4. O trafego de extracao passa pelo proxy (o site ve o IP da VPN)
+5. Nota: nao substitui responsabilidade legal no uso dos dados
 
 INICIO RAPIDO
 -------------

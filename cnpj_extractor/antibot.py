@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 
 import requests
 
+from cnpj_extractor.proxy_config import get_active_proxy, playwright_proxy, requests_proxies
+
 # Indicadores de bloqueio anti-bot na resposta HTML
 BLOCK_PATTERNS = [
     r"just a moment",
@@ -75,13 +77,20 @@ class AntibotClient:
         max_retries: int = 4,
         use_playwright_fallback: bool = True,
         aggressive: bool = True,
+        proxy_url: str | None = None,
     ):
         self.delay_seconds = delay_seconds
         self.max_retries = max_retries
         self.use_playwright_fallback = use_playwright_fallback
         self.aggressive = aggressive
+        self.proxy_url = proxy_url if proxy_url is not None else get_active_proxy()
         self._local = threading.local()
         self._playwright_lock = threading.Lock()
+
+    def _proxies(self) -> dict[str, str] | None:
+        if not self.proxy_url:
+            return None
+        return {"http": self.proxy_url, "https": self.proxy_url}
 
     def _random_headers(self, referer: str | None = None) -> dict[str, str]:
         headers = {
@@ -151,6 +160,7 @@ class AntibotClient:
                         timeout=45,
                         allow_redirects=True,
                         impersonate=impersonate,
+                        proxies=self._proxies(),
                     )
                     text = resp.text
                     blocked = self._is_blocked(resp.status_code, text)
@@ -170,7 +180,9 @@ class AntibotClient:
         if not session:
             return None
         try:
-            resp = session.get(url, headers=self._random_headers(referer), timeout=45)
+            resp = session.get(
+                url, headers=self._random_headers(referer), timeout=45, proxies=self._proxies()
+            )
             text = resp.text
             return FetchResult(
                 url, text, resp.status_code, "cloudscraper", self._is_blocked(resp.status_code, text)
@@ -181,7 +193,7 @@ class AntibotClient:
     def _fetch_requests(self, url: str, referer: str | None) -> FetchResult:
         session = self._get_requests_session()
         session.headers.update(self._random_headers(referer))
-        resp = session.get(url, timeout=45, allow_redirects=True)
+        resp = session.get(url, timeout=45, allow_redirects=True, proxies=self._proxies())
         text = resp.text
         return FetchResult(url, text, resp.status_code, "requests", self._is_blocked(resp.status_code, text))
 
@@ -192,6 +204,8 @@ class AntibotClient:
             from playwright.sync_api import sync_playwright
         except ImportError:
             return None
+
+        pw_proxy = playwright_proxy() if self.proxy_url else None
 
         with self._playwright_lock:
             try:
@@ -204,11 +218,14 @@ class AntibotClient:
                             "--disable-dev-shm-usage",
                         ],
                     )
-                    context = browser.new_context(
-                        user_agent=random.choice(USER_AGENTS),
-                        locale="pt-PT",
-                        viewport={"width": 1366, "height": 768},
-                    )
+                    context_kwargs: dict = {
+                        "user_agent": random.choice(USER_AGENTS),
+                        "locale": "pt-PT",
+                        "viewport": {"width": 1366, "height": 768},
+                    }
+                    if pw_proxy:
+                        context_kwargs["proxy"] = pw_proxy
+                    context = browser.new_context(**context_kwargs)
                     context.add_init_script(
                         "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
                     )

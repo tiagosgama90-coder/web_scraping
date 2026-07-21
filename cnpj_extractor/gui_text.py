@@ -81,6 +81,7 @@ Na barra lateral pode escolher:
   • Campos a exportar (email, empresa, cnpj, telefone, uf, etc.)
   • Obrigatório ter e-mail / telefone / CNPJ
   • Validar domínio DNS/MX (verifica se o domínio tem servidor de email)
+  • 🔒 Proxy / VPN — ocultar IP nas extrações de sites (v2.10)
   • Guardar CSV filtrado automaticamente ao concluir
   • Gravar ficheiros ENQUANTO extrai (não espera pelo fim)
   • SQLite em tempo real para volumes enormes (10M+)

@@ -6,7 +6,7 @@
 - **19 países** no menu + sites personalizados
 - **Pré-visualização** — vê emails no ecrã antes de gravar ficheiros
 - Grava ficheiros **enquanto extrai** — ideal para milhões de registos
-- Versão atual: **2.9.0**
+- Versão atual: **2.10.0**
 
 ---
 
@@ -192,6 +192,7 @@ Instala Python portátil na pasta do projeto — não mexe no sistema.
 | **Gravar ficheiros enquanto extrai** | CSV/TXT em tempo real | ✅ Sempre ativo |
 | **SQLite em tempo real** | Base de dados durante extração | ✅ Para volumes grandes |
 | **Anti-Bot** | Playwright + Cloudflare | ✅ Ativo |
+| **🔒 Proxy / VPN** | Encaminha tráfego por proxy (ocultar IP) | Opcional — use proxy da sua VPN |
 | **Pasta de downloads** | ZIPs Receita Federal (BR) | Configurável |
 | **Pasta de exportação** | Onde guarda resultados | Configurável |
 | **🔍 Pré-visualizar** | Amostra na tabela sem gravar ficheiros | Antes da extração completa |
@@ -543,6 +544,38 @@ C:\Users\TeuNome\AppData\Local\Programs\Company Email Extractor\
 
 ---
 
+---
+
+## Proxy / VPN — ocultar IP (v2.10)
+
+O software **não inclui VPN integrada**. Pode usar o **proxy da sua VPN** para que os sites vejam o IP do proxy em vez do seu IP de casa.
+
+### Como configurar
+
+1. Na barra lateral, ative **🔒 Proxy / VPN (ocultar IP)**
+2. Cole o endereço do proxy (fornecido pela sua VPN):
+
+| Tipo | Exemplo |
+|------|---------|
+| SOCKS5 | `socks5://127.0.0.1:1080` |
+| HTTP | `http://127.0.0.1:8080` |
+| Com login | `socks5://user:pass@host:port` |
+
+3. Inicie a extração normalmente
+
+### Onde obter o proxy
+
+- **NordVPN, Mullvad, ProtonVPN**, etc. — nas definições da app, procure «SOCKS5 proxy» ou «HTTP proxy»
+- Muitas VPNs expõem proxy local em `127.0.0.1` quando a VPN está ligada
+
+### Notas importantes
+
+- O proxy **oculta o IP técnico** — não elimina responsabilidade legal no uso dos dados
+- Funciona com scraping, sitemaps e anti-bot (incluindo Playwright)
+- Receita Federal e FIZ também podem usar proxy se ativado
+
+---
+
 ## 13. Avisos legais
 
 - Use os dados em conformidade com **LGPD** (Brasil) e **RGPD** (Portugal)
@@ -563,4 +596,4 @@ C:\Users\TeuNome\AppData\Local\Programs\Company Email Extractor\
 
 ---
 
-*Company Email Extractor v2.9.0 — Guia do utilizador*
+*Company Email Extractor v2.10.0 — Guia do utilizador*
