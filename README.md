@@ -1,86 +1,60 @@
-# Company Email Extractor v2.0
+# Company Email Extractor v2.6
 
-Software **nativo Windows** para extrair e-mails de empresas do **Brasil** e **Portugal**.
+Software **nativo Windows** para extrair emails e dados de empresas do **Brasil**, **Portugal** e **qualquer site**.
 
 **Janela própria — sem browser, sem terminal, sem configurar Python.**
 
 ---
 
-## Instalação rápida (Windows)
+## Download Windows (Setup)
 
-### Opção 1 — Instalador automático (recomendado)
+**https://github.com/tiagosgama90-coder/web_scraping/releases/latest**
 
-1. Descarrega o ZIP: https://github.com/tiagosgama90-coder/web_scraping
-2. Duplo clique em **`INSTALAR.bat`** (uma vez)
-3. Duplo clique em **`ABRIR SOFTWARE.bat`** (sempre)
+Ficheiro: `CompanyEmailExtractor-Setup.exe` (~83 MB)
 
-### Opção 2 — Setup profissional (.exe instalador)
-
-1. GitHub → **Actions** → **Build Windows Native App**
-2. Descarrega **`CompanyEmailExtractor-Installer`**
-3. Corre **`CompanyEmailExtractor-Setup.exe`**
-4. Segue o assistente de instalação
-5. Abre pelo menu Iniciar ou atalho no Ambiente de Trabalho
-
-### Opção 3 — Executável portátil (sem instalar)
-
-Descarrega `CompanyEmailExtractor.exe` nos Artifacts do GitHub. Duplo clique — funciona.
+O instalador inclui o programa + guias **LEIA-ME.txt** e **COMO_USAR.md**.
 
 ---
 
-## Interface
+## O que faz (resumo)
 
-```
-┌─────────────────────────────────────────────────────┐
-│  📧 Company Email Extractor                         │
-├──────────────┬──────────────────────────────────────┤
-│ País         │  [Registos] [E-mails] [País] [Estado]│
-│ Fonte        │  ████████████░░░░░░  Progresso       │
-│ Modo         │  ┌────────────────────────────────┐  │
-│ Limite       │  │ NIPC │ Empresa │ Email │ ...  │  │
-│ Filtros      │  └────────────────────────────────┘  │
-│              │  [Exportar SQLite] [Exportar CSV]     │
-│ [▶ Iniciar]  │                                      │
-└──────────────┴──────────────────────────────────────┘
-```
-
----
-
-## Países
-
-| País | Fonte | Empresas |
-|------|-------|----------|
-| 🇵🇹 Portugal | Diretório FIZ | ~490.000 (sitemap automático) |
-| 🇧🇷 Brasil | Receita Federal / DadosBrasil | ~67 milhões |
-
----
-
-## Modos
-
-| Modo | Descrição |
-|------|-----------|
-| **Limitado** | Teste rápido (primeira página / amostra) |
-| **Automático** | Extração completa (todas as páginas do sitemap) |
+- Extrai emails de Receita Federal (BR), FIZ (PT) e sites personalizados
+- Limpa emails inválidos, duplicados e lixo automaticamente
+- Grava **CSV**, **TXT** e **SQLite** enquanto extrai (v2.6)
+- Divide em ficheiros de **1000 linhas** (abre no Excel)
+- Brasil: extrai **UF por UF** (SP, RJ, MG…) em pastas separadas
+- Anti-bot integrado (Cloudflare, Playwright)
 
 ---
 
 ## Documentação
 
-📖 Guia completo: [COMO_USAR.md](COMO_USAR.md)
+| Ficheiro | Conteúdo |
+|----------|----------|
+| **[COMO_USAR.md](COMO_USAR.md)** | Guia completo v2.6 |
+| **[LEIA-ME.txt](LEIA-ME.txt)** | Resumo rápido (vai no instalador) |
+
+---
+
+## Instalação rápida
+
+1. Descarrega `CompanyEmailExtractor-Setup.exe`
+2. Instala → abre pelo Menu Iniciar
+3. Lê `LEIA-ME.txt` na pasta de instalação
+
+Alternativa (código fonte): `INSTALAR.bat` → `ABRIR SOFTWARE.bat`
+
+---
 
 ## Build (desenvolvedores)
 
 ```bash
 build_windows.bat
-# ou
-pip install -r requirements.txt -r requirements-build.txt
-pyinstaller company_email_extractor.spec --noconfirm
+installer\build_setup.bat   # Gera Setup.exe + inclui guias
 ```
-
-Instalador Setup: abrir `installer/setup.iss` no Inno Setup 6.
 
 ---
 
-## Aviso legal
+## Licença e aviso legal
 
-Utilize em conformidade com LGPD (Brasil) e RGPD (Portugal).
+Use os dados em conformidade com **LGPD** (Brasil) e **RGPD** (Portugal).

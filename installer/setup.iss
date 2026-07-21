@@ -2,7 +2,7 @@
 ; Requer Inno Setup 6: https://jrsoftware.org/isinfo.php
 
 #define MyAppName "Company Email Extractor"
-#define MyAppVersion "2.6.0"
+#define MyAppVersion "2.6.1"
 #define MyAppPublisher "Company Email Extractor"
 #define MyAppExeName "CompanyEmailExtractor.exe"
 
@@ -32,11 +32,15 @@ Name: "desktopicon"; Description: "Criar atalho no Ambiente de Trabalho"; GroupD
 
 [Files]
 Source: "..\dist\CompanyEmailExtractor.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\COMO_USAR.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LEIA-ME.txt"; DestDir: "{app}"; Flags: ignoreversion
 ; Se usar build onedir, descomente:
 ; Source: "..\dist\CompanyEmailExtractor\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\Guia do Utilizador (LEIA-ME)"; Filename: "{sys}\notepad.exe"; Parameters: """{app}\LEIA-ME.txt"""
+Name: "{group}\Guia Completo (COMO_USAR)"; Filename: "{sys}\notepad.exe"; Parameters: """{app}\COMO_USAR.md"""
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]

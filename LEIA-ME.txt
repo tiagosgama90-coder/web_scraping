@@ -1,0 +1,61 @@
+================================================================================
+  COMPANY EMAIL EXTRACTOR v2.6 — LEIA-ME
+================================================================================
+
+INSTALACAO
+----------
+1. Execute CompanyEmailExtractor-Setup.exe
+2. Seguinte -> Instalar -> Concluir
+3. Abra pelo Menu Iniciar ou atalho no Ambiente de Trabalho
+
+DOWNLOAD ATUALIZADO
+-------------------
+https://github.com/tiagosgama90-coder/web_scraping/releases/latest
+
+O QUE FAZ
+---------
+- Extrai emails de empresas (Brasil, Portugal, qualquer site)
+- Limpa emails invalidos, duplicados e lixo (noreply, etc.)
+- Grava CSV, TXT e SQLite ENQUANTO extrai (nao espera pelo fim)
+- Divide em ficheiros de 1000 linhas (abre no Excel)
+- Brasil: extrai UF por UF (SP, RJ, MG...) em pastas separadas
+
+INICIO RAPIDO
+-------------
+1. Abra o programa
+2. Escolha Pais e Fonte na barra lateral
+3. Clique "Iniciar Extracao"
+4. Resultados em: Documentos\CompanyEmailExtractor\export\
+
+BRASIL (MILHOES DE EMAILS)
+--------------------------
+- Pais: BR | Fonte: Receita Federal | UF: Todos
+- Ative: Extrair UF por UF, Gravar enquanto extrai, SQLite em tempo real
+- Modo: automatico | Limite: 0
+- Coloque ZIPs Estabelecimentos0-9.zip na pasta downloads
+
+FORMATOS GRAVADOS
+-----------------
+  parte_0001.csv   -> CSV para Excel (1000 linhas cada)
+  emails_0001.txt  -> 1 email por linha (ficheiro leve)
+  empresas.db      -> Base de dados SQLite (milhoes de linhas)
+
+ABRIR FICHEIROS
+---------------
+  .csv  -> Duplo clique (abre no Excel)
+  .txt  -> Bloco de notas
+  .db   -> DB Browser for SQLite (https://sqlitebrowser.org/)
+          O programa CRIA o .db mas NAO o abre sozinho.
+
+GUIA COMPLETO
+-------------
+Leia COMO_USAR.md nesta mesma pasta (ou na instalacao).
+
+SUPORTE / CODIGO
+----------------
+https://github.com/tiagosgama90-coder/web_scraping
+
+AVISO LEGAL: Use em conformidade com LGPD/RGPD. Nao envie emails
+em massa sem consentimento.
+
+================================================================================
